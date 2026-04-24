@@ -135,7 +135,7 @@ else:
 
 st.write("Age gap:", age_gap)
 
-if st.button("Save result"):
+if st.button("Save result", key="save_result_button"):
     save_entry(
         real_age,
         sleep_hours,
@@ -159,13 +159,11 @@ if len(entries) > 0:
 else:
     st.write("No saved results yet.")
 
-
 with st.expander("Implementation note"):
     st.write(
         "This is not a medical diagnostic tool. It is a course project prototype. "
-        "The public NHANES data provides the population feature values when the "
-        "download succeeds. The biological-age target is a transparent teaching "
-        "index created from the same user-input features."
+        "The biological-age target is a transparent teaching index created from "
+        "the same user-input features."
     )
 
 
