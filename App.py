@@ -4,7 +4,7 @@ import sqlite3
 
 
 def create_database():
-    connection = sqlite3.connect("biological_age_simple.db")
+    connection = sqlite3.connect("biological_age_v4.db")
     cursor = connection.cursor()
 
     cursor.execute("""
@@ -21,7 +21,7 @@ def create_database():
             stress_score INTEGER,
             smoking TEXT,
             sitting_hours REAL,
-            weekly_steps INTEGER,
+            daily_steps INTEGER,
             biological_age REAL
         )
     """)
@@ -32,22 +32,22 @@ def create_database():
 
 def save_entry(age, gender, height_cm, weight_kg, bmi, sleep_hours,
                exercise_days, heart_rate, stress_score, smoking,
-               sitting_hours, weekly_steps, biological_age):
+               sitting_hours, daily_steps, biological_age):
 
-    connection = sqlite3.connect("biological_age_simple.db")
+    connection = sqlite3.connect("biological_age_v4.db")
     cursor = connection.cursor()
 
     cursor.execute("""
         INSERT INTO entries (
             age, gender, height_cm, weight_kg, bmi, sleep_hours,
             exercise_days, heart_rate, stress_score, smoking,
-            sitting_hours, weekly_steps, biological_age
+            sitting_hours, daily_steps, biological_age
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         age, gender, height_cm, weight_kg, bmi, sleep_hours,
         exercise_days, heart_rate, stress_score, smoking,
-        sitting_hours, weekly_steps, biological_age
+        sitting_hours, daily_steps, biological_age
     ))
 
     connection.commit()
@@ -55,7 +55,7 @@ def save_entry(age, gender, height_cm, weight_kg, bmi, sleep_hours,
 
 
 def load_entries():
-    connection = sqlite3.connect("biological_age_simple.db")
+    connection = sqlite3.connect("biological_age_v4.db")
     data = pd.read_sql_query("SELECT * FROM entries", connection)
     connection.close()
     return data
@@ -69,7 +69,7 @@ def calculate_bmi(weight_kg, height_cm):
 
 def calculate_biological_age(age, sleep_hours, exercise_days, bmi,
                              heart_rate, stress_score, smoking,
-                             sitting_hours, weekly_steps):
+                             sitting_hours, daily_steps):
 
     biological_age = age
 
@@ -95,9 +95,9 @@ def calculate_biological_age(age, sleep_hours, exercise_days, bmi,
     elif heart_rate < 60:
         biological_age = biological_age - 1
 
-    if stress_score >= 8:
+    if stress_score >= 18:
         biological_age = biological_age + 4
-    elif stress_score <= 3:
+    elif stress_score <= 8:
         biological_age = biological_age - 1
 
     if smoking == "Yes":
@@ -106,16 +106,16 @@ def calculate_biological_age(age, sleep_hours, exercise_days, bmi,
     if sitting_hours > 9:
         biological_age = biological_age + 3
 
-    if weekly_steps < 30000:
+    if daily_steps < 4000:
         biological_age = biological_age + 3
-    elif weekly_steps >= 70000:
+    elif daily_steps >= 10000:
         biological_age = biological_age - 2
 
     return biological_age
 
 
 def generate_recommendations(sleep_hours, exercise_days, bmi, heart_rate,
-                             stress_score, smoking, sitting_hours, weekly_steps):
+                             stress_score, smoking, sitting_hours, daily_steps):
 
     recommendations = []
 
@@ -123,7 +123,7 @@ def generate_recommendations(sleep_hours, exercise_days, bmi, heart_rate,
         recommendations.append("Smoking: strongest negative factor. Learn more: https://www.cdc.gov/tobacco/campaign/tips/quit-smoking/")
 
     if bmi >= 30:
-        recommendations.append("BMI: obese range. A gradual weight reduction could strongly improve the result. Learn more: https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight")
+        recommendations.append("BMI: obese range. Weight reduction could strongly improve the result. Learn more: https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight")
     elif bmi >= 25:
         recommendations.append("BMI: overweight range. Improving BMI could reduce the estimated biological age. Learn more: https://www.cdc.gov/healthy-weight-growth/index.html")
     elif bmi < 18.5:
@@ -140,20 +140,20 @@ def generate_recommendations(sleep_hours, exercise_days, bmi, heart_rate,
         recommendations.append("Exercise: below 3 days per week. Try to add one additional exercise day. Learn more: https://www.cdc.gov/physical-activity-basics/guidelines/adults.html")
 
     if heart_rate > 80:
-        recommendations.append("Resting heart rate: relatively high. Regular walking, cycling, or cardio could help. Learn more: https://www.cdc.gov/physical-activity-basics/benefits/index.html")
+        recommendations.append("Resting heart rate: relatively high. Regular cardio could help. Learn more: https://www.cdc.gov/physical-activity-basics/benefits/index.html")
 
-    if stress_score >= 8:
-        recommendations.append("Stress: high stress score. Improve recovery, sleep, and daily breaks. Learn more: https://www.who.int/news-room/questions-and-answers/item/stress")
-    elif stress_score >= 5:
-        recommendations.append("Stress: moderate stress score. Monitor sleep and concentration. Learn more: https://www.cdc.gov/mental-health/living-with/index.html")
+    if stress_score >= 18:
+        recommendations.append("Stress: high perceived stress. Focus on control, recovery, breaks, and sleep. Learn more: https://www.who.int/news-room/questions-and-answers/item/stress")
+    elif stress_score >= 12:
+        recommendations.append("Stress: moderate perceived stress. Monitor overload, sleep, and concentration. Learn more: https://www.cdc.gov/mental-health/living-with/index.html")
 
     if sitting_hours > 9:
         recommendations.append("Sitting time: high sitting time. Add walking breaks and stand up more often. Learn more: https://www.who.int/news-room/fact-sheets/detail/physical-activity")
 
-    if weekly_steps < 30000:
-        recommendations.append("Weekly steps: low step count. Try to add 1,000 steps per day. Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html")
-    elif weekly_steps < 50000:
-        recommendations.append("Weekly steps: moderate step count. Try to move closer to 50,000 steps per week. Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html")
+    if daily_steps < 4000:
+        recommendations.append("Daily steps: low daily step count. Try to add 1,000 steps per day. Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html")
+    elif daily_steps < 7000:
+        recommendations.append("Daily steps: moderate but improvable. Try to move closer to 7,000–10,000 daily steps. Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html")
 
     if len(recommendations) == 0:
         recommendations.append("No major negative factor was detected. General health information: https://www.who.int/health-topics")
@@ -171,7 +171,7 @@ st.warning(
     "Streamlit inputs, SQLite storage and basic data visualization."
 )
 
-st.write("Enter your basic information, estimate your biological age, and receive simple recommendations.")
+st.write("Use a dot for decimal time values. Example: 7.5 = 7 hours and 30 minutes.")
 
 st.divider()
 
@@ -189,7 +189,6 @@ with col2:
 
 bmi = calculate_bmi(weight_kg, height_cm)
 
-st.subheader("BMI Result")
 st.metric("Calculated BMI", round(bmi, 2))
 
 if bmi < 18.5:
@@ -211,7 +210,7 @@ col3, col4 = st.columns(2)
 
 with col3:
     sleep_hours = st.number_input(
-        "Sleep per night in hours",
+        "Sleep per night in hours, e.g. 7.5",
         min_value=0.0,
         max_value=24.0,
         value=7.0,
@@ -224,40 +223,36 @@ with col3:
 
 with col4:
     sitting_hours = st.number_input(
-        "Sitting time per day in hours",
+        "Sitting time per day in hours, e.g. 8.5",
         min_value=0.0,
         max_value=24.0,
         value=7.0,
         step=0.25
     )
 
-    weekly_steps = st.number_input(
-        "Average weekly steps",
+    daily_steps = st.number_input(
+        "Average daily steps",
         min_value=0,
-        max_value=200000,
-        value=50000,
-        step=1000
+        max_value=25000,
+        value=7000,
+        step=500
     )
 
     smoking = st.selectbox("Do you smoke?", ["No", "Yes"])
 
 st.subheader("Stress Questionnaire")
-st.write("Answer each question from 0 to 4.")
+st.write("Inspired by common perceived stress questionnaires. Answer from 0 = never to 4 = very often.")
 
-col5, col6, col7 = st.columns(3)
+stress_1 = st.slider("How often did you feel unable to control important things in your life?", 0, 4, 2)
+stress_2 = st.slider("How often did you feel nervous or stressed?", 0, 4, 2)
+stress_3 = st.slider("How often did you feel that difficulties were piling up?", 0, 4, 2)
+stress_4 = st.slider("How often did you feel confident about handling personal problems?", 0, 4, 2)
+stress_5 = st.slider("How often did you feel that things were going your way?", 0, 4, 2)
+stress_6 = st.slider("How often did you feel you could not cope with all the things you had to do?", 0, 4, 2)
 
-with col5:
-    overwhelmed = st.slider("Overwhelmed?", 0, 4, 2)
+stress_score = stress_1 + stress_2 + stress_3 + (4 - stress_4) + (4 - stress_5) + stress_6
 
-with col6:
-    sleep_problem = st.slider("Stress affects sleep?", 0, 4, 2)
-
-with col7:
-    concentration_problem = st.slider("Stress affects concentration?", 0, 4, 2)
-
-stress_score = overwhelmed + sleep_problem + concentration_problem
-
-st.write("Stress score:", stress_score, "out of 12")
+st.write("Stress score:", stress_score, "out of 24")
 
 st.divider()
 
@@ -272,17 +267,17 @@ biological_age = calculate_biological_age(
     stress_score,
     smoking,
     sitting_hours,
-    weekly_steps
+    daily_steps
 )
 
 age_gap = biological_age - age
 
-col8, col9 = st.columns(2)
+col5, col6 = st.columns(2)
 
-with col8:
+with col5:
     st.metric("Real age", age)
 
-with col9:
+with col6:
     st.metric("Estimated biological age", round(biological_age, 1))
 
 st.write("Age gap:", round(age_gap, 1))
@@ -306,7 +301,7 @@ recommendations = generate_recommendations(
     stress_score,
     smoking,
     sitting_hours,
-    weekly_steps
+    daily_steps
 )
 
 for recommendation in recommendations:
@@ -329,7 +324,7 @@ if st.button("Save result", key="save_result_button"):
         stress_score,
         smoking,
         sitting_hours,
-        weekly_steps,
+        daily_steps,
         biological_age
     )
     st.success("Result saved.")
