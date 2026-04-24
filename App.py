@@ -159,24 +159,18 @@ if len(entries) > 0:
 else:
     st.write("No saved results yet.")
 
-l)
 
-    show_what_if(model, profile, prediction)
-    show_history()
+with st.expander("Implementation note"):
+    st.write(
+        "This is not a medical diagnostic tool. It is a course project prototype. "
+        "The public NHANES data provides the population feature values when the "
+        "download succeeds. The biological-age target is a transparent teaching "
+        "index created from the same user-input features."
+    )
 
-    with st.expander("Implementation note"):
-        st.write(
-            "This is not a medical diagnostic tool. It is a course project prototype. "
-            "The public NHANES data provides the population feature values when the "
-            "download succeeds. The biological-age target is a transparent teaching "
-            "index created from the same user-input features."
-        )
-
-
-if __name__ == "__main__":
-    main()ical age is equal to your real age.")
 
 st.write("Age gap:", age_gap)
+
 
 if st.button("Save result"):
     save_entry(
