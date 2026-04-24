@@ -3,10 +3,6 @@ import pandas as pd
 import sqlite3
 
 
-# ------------------------------------------------------------
-# SCHRITT 1: Datenbank erstellen
-# ------------------------------------------------------------
-
 def create_database():
     connection = sqlite3.connect("biological_age_simple.db")
     cursor = connection.cursor()
@@ -34,10 +30,6 @@ def create_database():
     connection.close()
 
 
-# ------------------------------------------------------------
-# SCHRITT 2: Resultat speichern
-# ------------------------------------------------------------
-
 def save_entry(age, gender, height_cm, weight_kg, bmi, sleep_hours,
                exercise_days, heart_rate, stress_score, smoking,
                sitting_hours, weekly_steps, biological_age):
@@ -62,10 +54,6 @@ def save_entry(age, gender, height_cm, weight_kg, bmi, sleep_hours,
     connection.close()
 
 
-# ------------------------------------------------------------
-# SCHRITT 3: Gespeicherte Resultate laden
-# ------------------------------------------------------------
-
 def load_entries():
     connection = sqlite3.connect("biological_age_simple.db")
     data = pd.read_sql_query("SELECT * FROM entries", connection)
@@ -73,19 +61,11 @@ def load_entries():
     return data
 
 
-# ------------------------------------------------------------
-# SCHRITT 4: BMI berechnen
-# ------------------------------------------------------------
-
 def calculate_bmi(weight_kg, height_cm):
     height_m = height_cm / 100
     bmi = weight_kg / (height_m * height_m)
     return bmi
 
-
-# ------------------------------------------------------------
-# SCHRITT 5: Biologisches Alter berechnen
-# ------------------------------------------------------------
 
 def calculate_biological_age(age, sleep_hours, exercise_days, bmi,
                              heart_rate, stress_score, smoking,
@@ -134,119 +114,52 @@ def calculate_biological_age(age, sleep_hours, exercise_days, bmi,
     return biological_age
 
 
-# ------------------------------------------------------------
-# SCHRITT 6: Empfehlungen generieren
-# ------------------------------------------------------------
-
 def generate_recommendations(sleep_hours, exercise_days, bmi, heart_rate,
                              stress_score, smoking, sitting_hours, weekly_steps):
 
     recommendations = []
 
     if smoking == "Yes":
-        recommendations.append(
-            "Smoking: This has the strongest negative effect in the prototype. "
-            "Try to reduce or stop smoking first. "
-            "Learn more: https://www.cdc.gov/tobacco/campaign/tips/quit-smoking/"
-        )
+        recommendations.append("Smoking: strongest negative factor. Learn more: https://www.cdc.gov/tobacco/campaign/tips/quit-smoking/")
 
     if bmi >= 30:
-        recommendations.append(
-            "BMI: Your BMI is in the obese range. "
-            "A gradual reduction of body weight could strongly improve the result. "
-            "Learn more: https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight"
-        )
+        recommendations.append("BMI: obese range. A gradual weight reduction could strongly improve the result. Learn more: https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight")
     elif bmi >= 25:
-        recommendations.append(
-            "BMI: Your BMI is in the overweight range. "
-            "Improving BMI could reduce the estimated biological age. "
-            "Learn more: https://www.cdc.gov/healthy-weight-growth/index.html"
-        )
+        recommendations.append("BMI: overweight range. Improving BMI could reduce the estimated biological age. Learn more: https://www.cdc.gov/healthy-weight-growth/index.html")
     elif bmi < 18.5:
-        recommendations.append(
-            "BMI: Your BMI is below the normal range. "
-            "A healthier body weight could improve the result. "
-            "Learn more: https://www.cdc.gov/bmi/adult-calculator/bmi-categories.html"
-        )
+        recommendations.append("BMI: underweight range. A healthier body weight could improve the result. Learn more: https://www.cdc.gov/bmi/adult-calculator/bmi-categories.html")
 
     if sleep_hours < 6:
-        recommendations.append(
-            "Sleep: Your sleep duration is low. "
-            "Try to move closer to 7–9 hours per night. "
-            "Learn more: https://www.cdc.gov/sleep/"
-        )
+        recommendations.append("Sleep: low sleep duration. Try to move closer to 7–9 hours per night. Learn more: https://www.cdc.gov/sleep/")
     elif sleep_hours < 7:
-        recommendations.append(
-            "Sleep: Your sleep is slightly below the recommended range. "
-            "Try to add 30 minutes of sleep per night. "
-            "Learn more: https://www.cdc.gov/sleep/about/index.html"
-        )
+        recommendations.append("Sleep: slightly below the recommended range. Try to add 30 minutes per night. Learn more: https://www.cdc.gov/sleep/about/index.html")
 
     if exercise_days == 0:
-        recommendations.append(
-            "Exercise: You reported no exercise days. "
-            "Start with 1 or 2 short sessions per week. "
-            "Learn more: https://www.who.int/news-room/fact-sheets/detail/physical-activity"
-        )
+        recommendations.append("Exercise: no exercise days. Start with 1 or 2 short sessions per week. Learn more: https://www.who.int/news-room/fact-sheets/detail/physical-activity")
     elif exercise_days < 3:
-        recommendations.append(
-            "Exercise: You are below 3 exercise days per week. "
-            "Try to add one additional exercise day. "
-            "Learn more: https://www.cdc.gov/physical-activity-basics/guidelines/adults.html"
-        )
+        recommendations.append("Exercise: below 3 days per week. Try to add one additional exercise day. Learn more: https://www.cdc.gov/physical-activity-basics/guidelines/adults.html")
 
     if heart_rate > 80:
-        recommendations.append(
-            "Resting heart rate: Your value is relatively high. "
-            "Regular walking, cycling, or cardio could improve this. "
-            "Learn more: https://www.cdc.gov/physical-activity-basics/benefits/index.html"
-        )
+        recommendations.append("Resting heart rate: relatively high. Regular walking, cycling, or cardio could help. Learn more: https://www.cdc.gov/physical-activity-basics/benefits/index.html")
 
     if stress_score >= 8:
-        recommendations.append(
-            "Stress: Your stress score is high. "
-            "Try to improve recovery, sleep, and daily breaks. "
-            "Learn more: https://www.who.int/news-room/questions-and-answers/item/stress"
-        )
+        recommendations.append("Stress: high stress score. Improve recovery, sleep, and daily breaks. Learn more: https://www.who.int/news-room/questions-and-answers/item/stress")
     elif stress_score >= 5:
-        recommendations.append(
-            "Stress: Your stress score is moderate. "
-            "Monitor whether stress affects your sleep or concentration. "
-            "Learn more: https://www.cdc.gov/mental-health/living-with/index.html"
-        )
+        recommendations.append("Stress: moderate stress score. Monitor sleep and concentration. Learn more: https://www.cdc.gov/mental-health/living-with/index.html")
 
     if sitting_hours > 9:
-        recommendations.append(
-            "Sitting time: Your sitting time is high. "
-            "Try to stand up more often and add walking breaks. "
-            "Learn more: https://www.who.int/news-room/fact-sheets/detail/physical-activity"
-        )
+        recommendations.append("Sitting time: high sitting time. Add walking breaks and stand up more often. Learn more: https://www.who.int/news-room/fact-sheets/detail/physical-activity")
 
     if weekly_steps < 30000:
-        recommendations.append(
-            "Weekly steps: Your weekly step count is low. "
-            "Try to add 1,000 steps per day as a first goal. "
-            "Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html"
-        )
+        recommendations.append("Weekly steps: low step count. Try to add 1,000 steps per day. Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html")
     elif weekly_steps < 50000:
-        recommendations.append(
-            "Weekly steps: Your weekly step count is moderate. "
-            "Try to move closer to 50,000 steps per week. "
-            "Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html"
-        )
+        recommendations.append("Weekly steps: moderate step count. Try to move closer to 50,000 steps per week. Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html")
 
     if len(recommendations) == 0:
-        recommendations.append(
-            "No major negative factor was detected in this simple prototype. "
-            "General health information: https://www.who.int/health-topics"
-        )
+        recommendations.append("No major negative factor was detected. General health information: https://www.who.int/health-topics")
 
     return recommendations
 
-
-# ------------------------------------------------------------
-# SCHRITT 7: App starten
-# ------------------------------------------------------------
 
 create_database()
 
@@ -258,21 +171,26 @@ st.warning(
     "Streamlit inputs, SQLite storage and basic data visualization."
 )
 
+st.write("Enter your basic information, estimate your biological age, and receive simple recommendations.")
 
-# ------------------------------------------------------------
-# SCHRITT 8: BMI Calculator
-# ------------------------------------------------------------
+st.divider()
 
-st.header("BMI Calculator")
+st.header("1. BMI Calculator")
 
-gender = st.selectbox("Gender", ["Male", "Female"])
-age = st.slider("Age", 10, 100, 25)
-height_cm = st.slider("Height in cm", 100, 220, 175)
-weight_kg = st.slider("Weight in kg", 30, 160, 70)
+col1, col2 = st.columns(2)
+
+with col1:
+    gender = st.selectbox("Gender", ["Male", "Female"])
+    age = st.slider("Age", 10, 100, 25)
+
+with col2:
+    height_cm = st.slider("Height in cm", 100, 220, 175)
+    weight_kg = st.slider("Weight in kg", 30, 160, 70)
 
 bmi = calculate_bmi(weight_kg, height_cm)
 
-st.write("Calculated BMI:", round(bmi, 2))
+st.subheader("BMI Result")
+st.metric("Calculated BMI", round(bmi, 2))
 
 if bmi < 18.5:
     st.write("BMI category: Underweight")
@@ -283,48 +201,67 @@ elif bmi < 30:
 else:
     st.write("BMI category: Obese")
 
+st.divider()
 
-# ------------------------------------------------------------
-# SCHRITT 9: Eingaben für biologisches Alter
-# ------------------------------------------------------------
+st.header("2. Biological Age Inputs")
 
-st.header("Biological Age Inputs")
+st.info("The app uses the age and BMI from the BMI Calculator above.")
 
-st.write("Age used for biological age:", age)
-st.write("BMI used for biological age:", round(bmi, 2))
+col3, col4 = st.columns(2)
 
-sleep_hours_input = st.number_input("Sleep hours per night", min_value=0, max_value=24, value=7)
-sleep_minutes_input = st.number_input("Sleep minutes per night", min_value=0, max_value=59, value=0)
+with col3:
+    sleep_hours = st.number_input(
+        "Sleep per night in hours",
+        min_value=0.0,
+        max_value=24.0,
+        value=7.0,
+        step=0.25
+    )
 
-sleep_hours = sleep_hours_input + sleep_minutes_input / 60
+    exercise_days = st.slider("Exercise days per week", 0, 7, 3)
 
-exercise_days = st.slider("Exercise days per week", 0, 7, 3)
-heart_rate = st.slider("Resting heart rate", 40, 120, 70)
+    heart_rate = st.slider("Resting heart rate", 40, 120, 70)
+
+with col4:
+    sitting_hours = st.number_input(
+        "Sitting time per day in hours",
+        min_value=0.0,
+        max_value=24.0,
+        value=7.0,
+        step=0.25
+    )
+
+    weekly_steps = st.number_input(
+        "Average weekly steps",
+        min_value=0,
+        max_value=200000,
+        value=50000,
+        step=1000
+    )
+
+    smoking = st.selectbox("Do you smoke?", ["No", "Yes"])
 
 st.subheader("Stress Questionnaire")
 st.write("Answer each question from 0 to 4.")
 
-overwhelmed = st.slider("How often do you feel overwhelmed?", 0, 4, 2)
-sleep_problem = st.slider("How often does stress affect your sleep?", 0, 4, 2)
-concentration_problem = st.slider("How often does stress affect your concentration?", 0, 4, 2)
+col5, col6, col7 = st.columns(3)
+
+with col5:
+    overwhelmed = st.slider("Overwhelmed?", 0, 4, 2)
+
+with col6:
+    sleep_problem = st.slider("Stress affects sleep?", 0, 4, 2)
+
+with col7:
+    concentration_problem = st.slider("Stress affects concentration?", 0, 4, 2)
 
 stress_score = overwhelmed + sleep_problem + concentration_problem
 
 st.write("Stress score:", stress_score, "out of 12")
 
-smoking = st.selectbox("Do you smoke?", ["No", "Yes"])
+st.divider()
 
-sitting_hours_input = st.number_input("Sitting hours per day", min_value=0, max_value=24, value=7)
-sitting_minutes_input = st.number_input("Sitting minutes per day", min_value=0, max_value=59, value=0)
-
-sitting_hours = sitting_hours_input + sitting_minutes_input / 60
-
-weekly_steps = st.number_input("Average weekly steps", min_value=0, max_value=200000, value=50000)
-
-
-# ------------------------------------------------------------
-# SCHRITT 10: Resultat berechnen
-# ------------------------------------------------------------
+st.header("3. Result")
 
 biological_age = calculate_biological_age(
     age,
@@ -340,14 +277,14 @@ biological_age = calculate_biological_age(
 
 age_gap = biological_age - age
 
+col8, col9 = st.columns(2)
 
-# ------------------------------------------------------------
-# SCHRITT 11: Resultat anzeigen
-# ------------------------------------------------------------
+with col8:
+    st.metric("Real age", age)
 
-st.header("Result")
+with col9:
+    st.metric("Estimated biological age", round(biological_age, 1))
 
-st.metric("Estimated biological age", round(biological_age, 1))
 st.write("Age gap:", round(age_gap, 1))
 
 if age_gap > 0:
@@ -357,12 +294,9 @@ elif age_gap < 0:
 else:
     st.write("Your biological age is equal to your real age.")
 
+st.divider()
 
-# ------------------------------------------------------------
-# SCHRITT 12: Empfehlungen anzeigen
-# ------------------------------------------------------------
-
-st.header("Recommendations")
+st.header("4. Recommendations")
 
 recommendations = generate_recommendations(
     sleep_hours,
@@ -378,10 +312,9 @@ recommendations = generate_recommendations(
 for recommendation in recommendations:
     st.write("- " + recommendation)
 
+st.divider()
 
-# ------------------------------------------------------------
-# SCHRITT 13: Resultat speichern
-# ------------------------------------------------------------
+st.header("5. Save Result")
 
 if st.button("Save result", key="save_result_button"):
     save_entry(
@@ -401,12 +334,9 @@ if st.button("Save result", key="save_result_button"):
     )
     st.success("Result saved.")
 
+st.divider()
 
-# ------------------------------------------------------------
-# SCHRITT 14: Gespeicherte Resultate anzeigen
-# ------------------------------------------------------------
-
-st.header("Saved Results")
+st.header("6. Saved Results")
 
 entries = load_entries()
 
