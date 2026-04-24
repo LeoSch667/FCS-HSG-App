@@ -120,43 +120,88 @@ def generate_recommendations(sleep_hours, exercise_days, bmi, heart_rate,
     recommendations = []
 
     if smoking == "Yes":
-        recommendations.append("Smoking: strongest negative factor. Learn more: https://www.cdc.gov/tobacco/campaign/tips/quit-smoking/")
+        recommendations.append(
+            "Smoking: strongest negative factor. Try to reduce or stop smoking first. "
+            "Learn more: https://www.cdc.gov/tobacco/campaign/tips/quit-smoking/"
+        )
 
     if bmi >= 30:
-        recommendations.append("BMI: obese range. Weight reduction could strongly improve the result. Learn more: https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight")
+        recommendations.append(
+            "BMI: obese range. Weight reduction could strongly improve the result. "
+            "Learn more: https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight"
+        )
     elif bmi >= 25:
-        recommendations.append("BMI: overweight range. Improving BMI could reduce the estimated biological age. Learn more: https://www.cdc.gov/healthy-weight-growth/index.html")
+        recommendations.append(
+            "BMI: overweight range. Improving BMI could reduce the estimated biological age. "
+            "Learn more: https://www.cdc.gov/healthy-weight-growth/index.html"
+        )
     elif bmi < 18.5:
-        recommendations.append("BMI: underweight range. A healthier body weight could improve the result. Learn more: https://www.cdc.gov/bmi/adult-calculator/bmi-categories.html")
+        recommendations.append(
+            "BMI: underweight range. A healthier body weight could improve the result. "
+            "Learn more: https://www.cdc.gov/bmi/adult-calculator/bmi-categories.html"
+        )
 
     if sleep_hours < 6:
-        recommendations.append("Sleep: low sleep duration. Try to move closer to 7–9 hours per night. Learn more: https://www.cdc.gov/sleep/")
+        recommendations.append(
+            "Sleep: low sleep duration. Try to move closer to 7–9 hours per night. "
+            "Learn more: https://www.cdc.gov/sleep/"
+        )
     elif sleep_hours < 7:
-        recommendations.append("Sleep: slightly below the recommended range. Try to add 30 minutes per night. Learn more: https://www.cdc.gov/sleep/about/index.html")
+        recommendations.append(
+            "Sleep: slightly below the recommended range. Try to add 30 minutes per night. "
+            "Learn more: https://www.cdc.gov/sleep/about/index.html"
+        )
 
     if exercise_days == 0:
-        recommendations.append("Exercise: no exercise days. Start with 1 or 2 short sessions per week. Learn more: https://www.who.int/news-room/fact-sheets/detail/physical-activity")
+        recommendations.append(
+            "Exercise: no exercise days. Start with 1 or 2 short sessions per week. "
+            "Learn more: https://www.who.int/news-room/fact-sheets/detail/physical-activity"
+        )
     elif exercise_days < 3:
-        recommendations.append("Exercise: below 3 days per week. Try to add one additional exercise day. Learn more: https://www.cdc.gov/physical-activity-basics/guidelines/adults.html")
+        recommendations.append(
+            "Exercise: below 3 days per week. Try to add one additional exercise day. "
+            "Learn more: https://www.cdc.gov/physical-activity-basics/guidelines/adults.html"
+        )
 
     if heart_rate > 80:
-        recommendations.append("Resting heart rate: relatively high. Regular cardio could help. Learn more: https://www.cdc.gov/physical-activity-basics/benefits/index.html")
+        recommendations.append(
+            "Resting heart rate: relatively high. Regular walking, cycling, or cardio could help. "
+            "Learn more: https://www.cdc.gov/physical-activity-basics/benefits/index.html"
+        )
 
     if stress_score >= 18:
-        recommendations.append("Stress: high perceived stress. Focus on control, recovery, breaks, and sleep. Learn more: https://www.who.int/news-room/questions-and-answers/item/stress")
+        recommendations.append(
+            "Stress: high perceived stress. Focus on control, recovery, breaks, and sleep. "
+            "Learn more: https://www.who.int/news-room/questions-and-answers/item/stress"
+        )
     elif stress_score >= 12:
-        recommendations.append("Stress: moderate perceived stress. Monitor overload, sleep, and concentration. Learn more: https://www.cdc.gov/mental-health/living-with/index.html")
+        recommendations.append(
+            "Stress: moderate perceived stress. Monitor overload, sleep, and concentration. "
+            "Learn more: https://www.cdc.gov/mental-health/living-with/index.html"
+        )
 
     if sitting_hours > 9:
-        recommendations.append("Sitting time: high sitting time. Add walking breaks and stand up more often. Learn more: https://www.who.int/news-room/fact-sheets/detail/physical-activity")
+        recommendations.append(
+            "Sitting time: high sitting time. Add walking breaks and stand up more often. "
+            "Learn more: https://www.who.int/news-room/fact-sheets/detail/physical-activity"
+        )
 
     if daily_steps < 4000:
-        recommendations.append("Daily steps: low daily step count. Try to add 1,000 steps per day. Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html")
+        recommendations.append(
+            "Daily steps: low daily step count. Try to add 1,000 steps per day. "
+            "Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html"
+        )
     elif daily_steps < 7000:
-        recommendations.append("Daily steps: moderate but improvable. Try to move closer to 7,000–10,000 daily steps. Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html")
+        recommendations.append(
+            "Daily steps: moderate but improvable. Try to move closer to 7,000–10,000 daily steps. "
+            "Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html"
+        )
 
     if len(recommendations) == 0:
-        recommendations.append("No major negative factor was detected. General health information: https://www.who.int/health-topics")
+        recommendations.append(
+            "No major negative factor was detected. "
+            "General health information: https://www.who.int/health-topics"
+        )
 
     return recommendations
 
@@ -170,8 +215,6 @@ st.warning(
     "It is a course project prototype based on simple Python rules, "
     "Streamlit inputs, SQLite storage and basic data visualization."
 )
-
-st.write("Use a dot for decimal time values. Example: 7.5 = 7 hours and 30 minutes.")
 
 st.divider()
 
@@ -210,11 +253,12 @@ col3, col4 = st.columns(2)
 
 with col3:
     sleep_hours = st.number_input(
-        "Sleep per night in hours, e.g. 7.5",
+        "Sleep per night in hours",
         min_value=0.0,
         max_value=24.0,
-        value=7.0,
-        step=0.25
+        value=7.50,
+        step=0.25,
+        format="%.2f"
     )
 
     exercise_days = st.slider("Exercise days per week", 0, 7, 3)
@@ -223,11 +267,12 @@ with col3:
 
 with col4:
     sitting_hours = st.number_input(
-        "Sitting time per day in hours, e.g. 8.5",
+        "Sitting time per day in hours",
         min_value=0.0,
         max_value=24.0,
-        value=7.0,
-        step=0.25
+        value=7.50,
+        step=0.25,
+        format="%.2f"
     )
 
     daily_steps = st.number_input(
@@ -241,14 +286,37 @@ with col4:
     smoking = st.selectbox("Do you smoke?", ["No", "Yes"])
 
 st.subheader("Stress Questionnaire")
-st.write("Inspired by common perceived stress questionnaires. Answer from 0 = never to 4 = very often.")
+st.write("Answer from 0 = never to 4 = very often.")
 
-stress_1 = st.slider("How often did you feel unable to control important things in your life?", 0, 4, 2)
-stress_2 = st.slider("How often did you feel nervous or stressed?", 0, 4, 2)
-stress_3 = st.slider("How often did you feel that difficulties were piling up?", 0, 4, 2)
-stress_4 = st.slider("How often did you feel confident about handling personal problems?", 0, 4, 2)
-stress_5 = st.slider("How often did you feel that things were going your way?", 0, 4, 2)
-stress_6 = st.slider("How often did you feel you could not cope with all the things you had to do?", 0, 4, 2)
+stress_1 = st.slider(
+    "How often did you feel unable to control important things in your life?",
+    0, 4, 2
+)
+
+stress_2 = st.slider(
+    "How often did you feel nervous or stressed?",
+    0, 4, 2
+)
+
+stress_3 = st.slider(
+    "How often did you feel that difficulties were piling up?",
+    0, 4, 2
+)
+
+stress_4 = st.slider(
+    "How often did you feel confident about handling personal problems?",
+    0, 4, 2
+)
+
+stress_5 = st.slider(
+    "How often did you feel that things were going your way?",
+    0, 4, 2
+)
+
+stress_6 = st.slider(
+    "How often did you feel you could not cope with all the things you had to do?",
+    0, 4, 2
+)
 
 stress_score = stress_1 + stress_2 + stress_3 + (4 - stress_4) + (4 - stress_5) + stress_6
 
