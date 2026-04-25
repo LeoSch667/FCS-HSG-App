@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-from sklearn.neighbors import KNeighborsClassifier
 
 
 # ------------------------------------------------------------
@@ -9,7 +8,7 @@ from sklearn.neighbors import KNeighborsClassifier
 # ------------------------------------------------------------
 
 def create_database():
-    connection = sqlite3.connect("biological_age_ml.db")
+    connection = sqlite3.connect("biological_age_rule_based.db")
     cursor = connection.cursor()
 
     cursor.execute("""
@@ -40,7 +39,7 @@ def save_entry(age, gender, height_cm, weight_kg, bmi, sleep_hours,
                exercise_days, heart_rate, stress_score, smoking,
                sitting_hours, daily_steps, biological_age, risk_profile):
 
-    connection = sqlite3.connect("biological_age_ml.db")
+    connection = sqlite3.connect("biological_age_rule_based.db")
     cursor = connection.cursor()
 
     cursor.execute("""
@@ -61,14 +60,14 @@ def save_entry(age, gender, height_cm, weight_kg, bmi, sleep_hours,
 
 
 def load_entries():
-    connection = sqlite3.connect("biological_age_ml.db")
+    connection = sqlite3.connect("biological_age_rule_based.db")
     data = pd.read_sql_query("SELECT * FROM entries", connection)
     connection.close()
     return data
 
 
 def clear_database():
-    connection = sqlite3.connect("biological_age_ml.db")
+    connection = sqlite3.connect("biological_age_rule_based.db")
     cursor = connection.cursor()
     cursor.execute("DELETE FROM entries")
     connection.commit()
@@ -148,7 +147,49 @@ def calculate_biological_age(age, sleep_hours, exercise_days, bmi,
 
 
 # ------------------------------------------------------------
-# SCHRITT 4: Einflussfaktoren berechnen
+# SCHRITT 4: Rule-based Risk Classification
+# Diese Funktion ersetzt das Machine-Learning-Modul.
+# Sie klassifiziert das Risiko anhand des Age Gap.
+# ------------------------------------------------------------
+
+def predict_risk_profile(age_gap):
+    if age_gap <= 0:
+        return "Low risk"
+    elif age_gap <= 5:
+        return "Medium risk"
+    else:
+        return "High risk"
+
+
+# ------------------------------------------------------------
+# SCHRITT 5: Health Score berechnen
+# ------------------------------------------------------------
+
+def calculate_health_score(age_gap):
+    score = 100 - age_gap * 5
+
+    if score > 100:
+        score = 100
+
+    if score < 0:
+        score = 0
+
+    return score
+
+
+def get_profile_category(age_gap):
+    if age_gap <= -3:
+        return "Excellent profile"
+    elif age_gap <= 2:
+        return "Balanced profile"
+    elif age_gap <= 7:
+        return "Improvement recommended"
+    else:
+        return "High improvement potential"
+
+
+# ------------------------------------------------------------
+# SCHRITT 6: Einflussfaktoren berechnen
 # ------------------------------------------------------------
 
 def get_factor_impacts(sleep_hours, exercise_days, bmi, heart_rate,
@@ -218,10 +259,6 @@ def get_factor_impacts(sleep_hours, exercise_days, bmi, heart_rate,
     return table
 
 
-# ------------------------------------------------------------
-# SCHRITT 5: Top-3 Prioritäten bestimmen
-# ------------------------------------------------------------
-
 def get_top_priorities(impact_table):
     negative_impacts = impact_table[impact_table["Impact"] > 0]
     negative_impacts = negative_impacts.sort_values("Impact", ascending=False)
@@ -230,91 +267,7 @@ def get_top_priorities(impact_table):
 
 
 # ------------------------------------------------------------
-# SCHRITT 6: Health Score berechnen
-# ------------------------------------------------------------
-
-def calculate_health_score(age_gap):
-    score = 100 - age_gap * 5
-
-    if score > 100:
-        score = 100
-
-    if score < 0:
-        score = 0
-
-    return score
-
-
-def get_profile_category(age_gap):
-    if age_gap <= -3:
-        return "Excellent profile"
-    elif age_gap <= 2:
-        return "Balanced profile"
-    elif age_gap <= 7:
-        return "Improvement recommended"
-    else:
-        return "High improvement potential"
-
-
-# ------------------------------------------------------------
-# SCHRITT 7: Einfaches Machine Learning Modell
-# KNN vergleicht den User mit Trainingsbeispielen.
-# ------------------------------------------------------------
-
-def train_ml_model():
-    training_data = [
-        [22, 7.5, 4, 22, 60, 6, 0, 5, 11000],
-        [30, 8.0, 5, 23, 58, 5, 0, 6, 12000],
-        [45, 7.0, 3, 24, 65, 8, 0, 7, 9000],
-
-        [35, 6.5, 2, 27, 75, 12, 0, 8, 6500],
-        [50, 6.0, 1, 28, 78, 14, 0, 9, 5500],
-        [40, 7.0, 2, 26, 72, 13, 0, 8, 6000],
-
-        [45, 5.0, 0, 31, 90, 20, 1, 11, 3000],
-        [55, 5.5, 0, 34, 88, 19, 1, 10, 2500],
-        [38, 5.0, 1, 32, 85, 18, 1, 12, 3500]
-    ]
-
-    training_labels = [
-        "Low risk", "Low risk", "Low risk",
-        "Medium risk", "Medium risk", "Medium risk",
-        "High risk", "High risk", "High risk"
-    ]
-
-    model = KNeighborsClassifier(n_neighbors=3)
-    model.fit(training_data, training_labels)
-
-    return model
-
-
-def predict_risk_profile(model, age, sleep_hours, exercise_days, bmi,
-                         heart_rate, stress_score, smoking, sitting_hours, daily_steps):
-
-    if smoking == "Yes":
-        smoking_value = 1
-    else:
-        smoking_value = 0
-
-    user_data = [[
-        age,
-        sleep_hours,
-        exercise_days,
-        bmi,
-        heart_rate,
-        stress_score,
-        smoking_value,
-        sitting_hours,
-        daily_steps
-    ]]
-
-    prediction = model.predict(user_data)
-
-    return prediction[0]
-
-
-# ------------------------------------------------------------
-# SCHRITT 8: Smart What-if Szenario generieren
+# SCHRITT 7: Smart Scenario
 # ------------------------------------------------------------
 
 def generate_smart_scenario(sleep_hours, exercise_days, stress_score,
@@ -345,7 +298,7 @@ def generate_smart_scenario(sleep_hours, exercise_days, stress_score,
 
 
 # ------------------------------------------------------------
-# SCHRITT 9: Personal Roadmap generieren
+# SCHRITT 8: Personal Roadmap
 # ------------------------------------------------------------
 
 def generate_roadmap(top_priorities):
@@ -389,7 +342,7 @@ def generate_roadmap(top_priorities):
 
 
 # ------------------------------------------------------------
-# SCHRITT 10: Empfehlungen generieren
+# SCHRITT 9: Empfehlungen
 # ------------------------------------------------------------
 
 def generate_recommendations(sleep_hours, exercise_days, bmi, heart_rate,
@@ -432,26 +385,24 @@ def generate_recommendations(sleep_hours, exercise_days, bmi, heart_rate,
 
 
 # ------------------------------------------------------------
-# SCHRITT 11: App starten
+# SCHRITT 10: App Start
 # ------------------------------------------------------------
 
 create_database()
-ml_model = train_ml_model()
 
 st.title("Biological Age Estimator")
-st.subheader("Interactive health prototype with rule-based logic and simple Machine Learning")
+st.subheader("Interactive health prototype with rule-based classification")
 
 st.warning(
     "This is not a medical diagnostic tool. "
-    "The biological age is based on simple rules. "
-    "The Machine Learning risk profile is a teaching prototype trained on synthetic examples."
+    "The biological age and risk profile are based on simple rule-based logic."
 )
 
 st.divider()
 
 
 # ------------------------------------------------------------
-# SCHRITT 12: User Profil
+# SCHRITT 11: Personal Profile
 # ------------------------------------------------------------
 
 st.header("1. Personal Profile")
@@ -481,7 +432,7 @@ st.divider()
 
 
 # ------------------------------------------------------------
-# SCHRITT 13: Lifestyle Inputs
+# SCHRITT 12: Lifestyle Inputs
 # ------------------------------------------------------------
 
 st.header("2. Lifestyle Inputs")
@@ -526,7 +477,7 @@ st.divider()
 
 
 # ------------------------------------------------------------
-# SCHRITT 14: Stress Check
+# SCHRITT 13: Stress Check
 # ------------------------------------------------------------
 
 st.header("3. Stress Check")
@@ -552,7 +503,7 @@ st.divider()
 
 
 # ------------------------------------------------------------
-# SCHRITT 15: Hauptresultat
+# SCHRITT 14: Health Dashboard
 # ------------------------------------------------------------
 
 biological_age = calculate_biological_age(
@@ -570,19 +521,7 @@ biological_age = calculate_biological_age(
 age_gap = biological_age - age
 health_score = calculate_health_score(age_gap)
 profile_category = get_profile_category(age_gap)
-
-risk_profile = predict_risk_profile(
-    ml_model,
-    age,
-    sleep_hours,
-    exercise_days,
-    bmi,
-    heart_rate,
-    stress_score,
-    smoking,
-    sitting_hours,
-    daily_steps
-)
+risk_profile = predict_risk_profile(age_gap)
 
 st.header("4. Health Dashboard")
 
@@ -598,7 +537,7 @@ with col11:
     st.metric("Health score", round(health_score, 1))
 
 with col12:
-    st.metric("ML risk profile", risk_profile)
+    st.metric("Risk profile", risk_profile)
 
 st.write("Rule-based category:", profile_category)
 st.write("Age gap:", round(age_gap, 1), "years")
@@ -614,7 +553,7 @@ st.divider()
 
 
 # ------------------------------------------------------------
-# SCHRITT 16: Top Prioritäten
+# SCHRITT 15: Top 3 Priorities
 # ------------------------------------------------------------
 
 st.header("5. Top 3 Priorities")
@@ -642,7 +581,7 @@ st.divider()
 
 
 # ------------------------------------------------------------
-# SCHRITT 17: Einflussanalyse
+# SCHRITT 16: Factor Impact Analysis
 # ------------------------------------------------------------
 
 st.header("6. Factor Impact Analysis")
@@ -657,7 +596,7 @@ st.divider()
 
 
 # ------------------------------------------------------------
-# SCHRITT 18: Smart What-if Simulator
+# SCHRITT 17: Smart What-if Simulator
 # ------------------------------------------------------------
 
 st.header("7. Smart What-if Simulator")
@@ -669,8 +608,6 @@ new_sleep, new_exercise, new_stress, new_sitting, new_steps = generate_smart_sce
     sitting_hours,
     daily_steps
 )
-
-st.write("The app automatically suggests a realistic improvement scenario.")
 
 scenario_table = pd.DataFrame({
     "Metric": ["Sleep", "Exercise days", "Stress score", "Sitting time", "Daily steps"],
@@ -709,7 +646,7 @@ st.divider()
 
 
 # ------------------------------------------------------------
-# SCHRITT 19: Personal Roadmap
+# SCHRITT 18: Personal Roadmap
 # ------------------------------------------------------------
 
 st.header("8. Personal Health Roadmap")
@@ -723,7 +660,7 @@ st.divider()
 
 
 # ------------------------------------------------------------
-# SCHRITT 20: Recommendations
+# SCHRITT 19: Learning Resources
 # ------------------------------------------------------------
 
 st.header("9. Learning Resources")
@@ -746,7 +683,7 @@ st.divider()
 
 
 # ------------------------------------------------------------
-# SCHRITT 21: Progress Tracking
+# SCHRITT 20: Save and Track Progress
 # ------------------------------------------------------------
 
 st.header("10. Save and Track Progress")
