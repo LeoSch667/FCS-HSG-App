@@ -1,17 +1,257 @@
-import streamlit as st
-import pandas as pd
 import sqlite3
 
+import pandas as pd
+import streamlit as st
 
-# ------------------------------------------------------------
-# SCHRITT 1: Datenbank erstellen
-# ------------------------------------------------------------
+
+st.set_page_config(
+    page_title="Biologischer Altersrechner",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+
+def apply_app_styles():
+    st.markdown(
+        """
+        <style>
+        :root {
+            --navy: #102a43;
+            --navy-soft: #1f3c5b;
+            --beige: #f5efe4;
+            --beige-strong: #eadfce;
+            --sky: #dcecf7;
+            --sky-strong: #bfd9ea;
+            --text-soft: #5f6c7b;
+            --white: #ffffff;
+            --success: #d7eadf;
+        }
+
+        .stApp {
+            background: linear-gradient(180deg, #fbf8f2 0%, #f5efe4 100%);
+            color: var(--navy);
+        }
+
+        .main .block-container {
+            max-width: 1180px;
+            padding-top: 1.2rem;
+            padding-bottom: 4rem;
+        }
+
+        h1, h2, h3, label, .stMarkdown, .stText, p {
+            color: var(--navy);
+        }
+
+        .hero-shell {
+            background: var(--white);
+            border: 1px solid rgba(16, 42, 67, 0.08);
+            border-radius: 28px;
+            padding: 1.25rem;
+            box-shadow: 0 20px 45px rgba(16, 42, 67, 0.08);
+            margin-bottom: 1.3rem;
+        }
+
+        .hero-copy {
+            text-align: center;
+            padding: 0.8rem 0 1rem 0;
+        }
+
+        .hero-kicker {
+            color: var(--navy-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .hero-title {
+            font-size: 3.1rem;
+            line-height: 1.05;
+            font-weight: 800;
+            margin: 0.6rem 0 0.7rem 0;
+            color: var(--navy);
+        }
+
+        .hero-text {
+            font-size: 1.05rem;
+            color: var(--text-soft);
+            max-width: 760px;
+            margin: 0 auto;
+            line-height: 1.7;
+        }
+
+        .hero-image {
+            width: 100%;
+            height: 420px;
+            object-fit: cover;
+            border-radius: 22px;
+            display: block;
+            margin-top: 0.3rem;
+        }
+
+        .notice-box {
+            background: linear-gradient(135deg, var(--sky) 0%, var(--beige) 100%);
+            border: 1px solid rgba(16, 42, 67, 0.08);
+            border-radius: 18px;
+            padding: 1rem 1.1rem;
+            margin-bottom: 1rem;
+            color: var(--navy);
+        }
+
+        .section-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(16, 42, 67, 0.08);
+            border-radius: 24px;
+            padding: 1.35rem 1.35rem 1rem 1.35rem;
+            margin: 1rem 0;
+            box-shadow: 0 14px 36px rgba(16, 42, 67, 0.06);
+        }
+
+        .section-topline {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .section-number {
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            background: var(--navy);
+            color: var(--beige);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .section-kicker {
+            color: var(--navy-soft);
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            font-size: 0.75rem;
+            font-weight: 800;
+            margin-bottom: 0.35rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            line-height: 1.15;
+            font-weight: 800;
+            color: var(--navy);
+            margin: 0;
+        }
+
+        .section-text {
+            color: var(--text-soft);
+            margin-top: 0.45rem;
+            line-height: 1.65;
+            max-width: 760px;
+        }
+
+        [data-testid="stMetric"] {
+            background: linear-gradient(180deg, #ffffff 0%, #f8f3ea 100%);
+            border: 1px solid rgba(16, 42, 67, 0.08);
+            border-radius: 18px;
+            padding: 0.9rem 1rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+        }
+
+        [data-testid="stMetricLabel"] {
+            color: var(--text-soft);
+        }
+
+        .stButton > button {
+            background: var(--navy);
+            color: #fff8ef;
+            border: none;
+            border-radius: 999px;
+            padding: 0.6rem 1.2rem;
+            font-weight: 700;
+        }
+
+        .stButton > button:hover {
+            background: var(--navy-soft);
+            color: white;
+        }
+
+        div[data-baseweb="input"] > div,
+        div[data-baseweb="select"] > div,
+        div[data-baseweb="base-input"] > div,
+        .stNumberInput input {
+            background: #fcfaf6;
+            border-radius: 14px;
+            border-color: rgba(16, 42, 67, 0.16);
+        }
+
+        .stSlider [data-baseweb="slider"] > div > div {
+            background: var(--sky-strong);
+        }
+
+        .stAlert {
+            border-radius: 18px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_hero():
+    st.markdown(
+        """
+        <div class="hero-shell">
+            <div class="hero-copy">
+                <div class="hero-kicker">Persönlicher Gesundheitsprototyp</div>
+                <div class="hero-title">Biologischer Altersrechner</div>
+                <div class="hero-text">
+                    Entdecke, wie Lebensstil, Stress, Bewegung und Regeneration dein biologisches Altersprofil in diesem
+                    regelbasierten Prototyp beeinflussen. Erfasse deine Werte, vergleiche Szenarien und verfolge deine
+                    Entwicklung in einem strukturierten Dashboard.
+                </div>
+            </div>
+            <img
+                class="hero-image"
+                src="https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=1600&q=80"
+                alt="Gesundheitsmotiv"
+            />
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def open_section(number, kicker, title, description):
+    st.markdown(
+        f"""
+        <div class="section-card">
+            <div class="section-topline">
+                <div>
+                    <div class="section-kicker">{kicker}</div>
+                    <h2 class="section-title">{title}</h2>
+                    <div class="section-text">{description}</div>
+                </div>
+                <div class="section-number">{number}</div>
+            </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def close_section():
+    st.markdown("</div>", unsafe_allow_html=True)
+
 
 def create_database():
     connection = sqlite3.connect("biological_age_rule_based.db")
     cursor = connection.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         CREATE TABLE IF NOT EXISTS entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             age INTEGER,
@@ -29,31 +269,58 @@ def create_database():
             biological_age REAL,
             risk_profile TEXT
         )
-    """)
+        """
+    )
 
     connection.commit()
     connection.close()
 
 
-def save_entry(age, gender, height_cm, weight_kg, bmi, sleep_hours,
-               exercise_days, heart_rate, stress_score, smoking,
-               sitting_hours, daily_steps, biological_age, risk_profile):
-
+def save_entry(
+    age,
+    gender,
+    height_cm,
+    weight_kg,
+    bmi,
+    sleep_hours,
+    exercise_days,
+    heart_rate,
+    stress_score,
+    smoking,
+    sitting_hours,
+    daily_steps,
+    biological_age,
+    risk_profile,
+):
     connection = sqlite3.connect("biological_age_rule_based.db")
     cursor = connection.cursor()
 
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO entries (
             age, gender, height_cm, weight_kg, bmi, sleep_hours,
             exercise_days, heart_rate, stress_score, smoking,
             sitting_hours, daily_steps, biological_age, risk_profile
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        age, gender, height_cm, weight_kg, bmi, sleep_hours,
-        exercise_days, heart_rate, stress_score, smoking,
-        sitting_hours, daily_steps, biological_age, risk_profile
-    ))
+        """,
+        (
+            age,
+            gender,
+            height_cm,
+            weight_kg,
+            bmi,
+            sleep_hours,
+            exercise_days,
+            heart_rate,
+            stress_score,
+            smoking,
+            sitting_hours,
+            daily_steps,
+            biological_age,
+            risk_profile,
+        ),
+    )
 
     connection.commit()
     connection.close()
@@ -74,205 +341,184 @@ def clear_database():
     connection.close()
 
 
-# ------------------------------------------------------------
-# SCHRITT 2: BMI berechnen
-# ------------------------------------------------------------
-
 def calculate_bmi(weight_kg, height_cm):
     height_m = height_cm / 100
-    bmi = weight_kg / (height_m * height_m)
-    return bmi
+    return weight_kg / (height_m * height_m)
 
 
 def get_bmi_category(bmi):
     if bmi < 18.5:
-        return "Underweight"
-    elif bmi < 25:
-        return "Normal weight"
-    elif bmi < 30:
-        return "Overweight"
-    else:
-        return "Obese"
+        return "Untergewicht"
+    if bmi < 25:
+        return "Normalgewicht"
+    if bmi < 30:
+        return "Übergewicht"
+    return "Adipositas"
 
 
-# ------------------------------------------------------------
-# SCHRITT 3: Biologisches Alter berechnen
-# ------------------------------------------------------------
-
-def calculate_biological_age(age, sleep_hours, exercise_days, bmi,
-                             heart_rate, stress_score, smoking,
-                             sitting_hours, daily_steps):
-
+def calculate_biological_age(
+    age,
+    sleep_hours,
+    exercise_days,
+    bmi,
+    heart_rate,
+    stress_score,
+    smoking,
+    sitting_hours,
+    daily_steps,
+):
     biological_age = age
 
     if sleep_hours < 6:
-        biological_age = biological_age + 4
-    elif sleep_hours >= 7 and sleep_hours <= 9:
-        biological_age = biological_age - 2
+        biological_age += 4
+    elif 7 <= sleep_hours <= 9:
+        biological_age -= 2
 
     if exercise_days == 0:
-        biological_age = biological_age + 4
+        biological_age += 4
     elif exercise_days >= 3:
-        biological_age = biological_age - 3
+        biological_age -= 3
 
     if bmi >= 30:
-        biological_age = biological_age + 6
+        biological_age += 6
     elif bmi >= 25:
-        biological_age = biological_age + 3
+        biological_age += 3
     elif bmi < 18.5:
-        biological_age = biological_age + 2
+        biological_age += 2
 
     if heart_rate > 80:
-        biological_age = biological_age + 3
+        biological_age += 3
     elif heart_rate < 60:
-        biological_age = biological_age - 1
+        biological_age -= 1
 
     if stress_score >= 18:
-        biological_age = biological_age + 4
+        biological_age += 4
     elif stress_score <= 8:
-        biological_age = biological_age - 1
+        biological_age -= 1
 
     if smoking == "Yes":
-        biological_age = biological_age + 7
+        biological_age += 7
 
     if sitting_hours > 9:
-        biological_age = biological_age + 3
+        biological_age += 3
 
     if daily_steps < 4000:
-        biological_age = biological_age + 3
+        biological_age += 3
     elif daily_steps >= 10000:
-        biological_age = biological_age - 2
+        biological_age -= 2
 
     return biological_age
 
 
-# ------------------------------------------------------------
-# SCHRITT 4: Rule-based Risk Classification
-# Diese Funktion ersetzt das Machine-Learning-Modul.
-# Sie klassifiziert das Risiko anhand des Age Gap.
-# ------------------------------------------------------------
-
 def predict_risk_profile(age_gap):
     if age_gap <= 0:
-        return "Low risk"
-    elif age_gap <= 5:
-        return "Medium risk"
-    else:
-        return "High risk"
+        return "Niedriges Risiko"
+    if age_gap <= 5:
+        return "Mittleres Risiko"
+    return "Hohes Risiko"
 
-
-# ------------------------------------------------------------
-# SCHRITT 5: Health Score berechnen
-# ------------------------------------------------------------
 
 def calculate_health_score(age_gap):
     score = 100 - age_gap * 5
-
     if score > 100:
         score = 100
-
     if score < 0:
         score = 0
-
     return score
 
 
 def get_profile_category(age_gap):
     if age_gap <= -3:
-        return "Excellent profile"
-    elif age_gap <= 2:
-        return "Balanced profile"
-    elif age_gap <= 7:
-        return "Improvement recommended"
-    else:
-        return "High improvement potential"
+        return "Ausgezeichnetes Profil"
+    if age_gap <= 2:
+        return "Ausgeglichenes Profil"
+    if age_gap <= 7:
+        return "Verbesserung empfohlen"
+    return "Hohes Verbesserungspotenzial"
 
 
-# ------------------------------------------------------------
-# SCHRITT 6: Einflussfaktoren berechnen
-# ------------------------------------------------------------
-
-def get_factor_impacts(sleep_hours, exercise_days, bmi, heart_rate,
-                       stress_score, smoking, sitting_hours, daily_steps):
-
+def get_factor_impacts(
+    sleep_hours,
+    exercise_days,
+    bmi,
+    heart_rate,
+    stress_score,
+    smoking,
+    sitting_hours,
+    daily_steps,
+):
     factors = []
     impacts = []
 
     if smoking == "Yes":
-        factors.append("Smoking")
+        factors.append("Rauchen")
         impacts.append(7)
 
     if bmi >= 30:
-        factors.append("Obese BMI")
+        factors.append("BMI im Adipositas-Bereich")
         impacts.append(6)
     elif bmi >= 25:
-        factors.append("Overweight BMI")
+        factors.append("BMI im Übergewichtsbereich")
         impacts.append(3)
     elif bmi < 18.5:
-        factors.append("Underweight BMI")
+        factors.append("BMI im Untergewichtsbereich")
         impacts.append(2)
 
     if sleep_hours < 6:
-        factors.append("Low sleep")
+        factors.append("Zu wenig Schlaf")
         impacts.append(4)
-    elif sleep_hours >= 7 and sleep_hours <= 9:
-        factors.append("Good sleep")
+    elif 7 <= sleep_hours <= 9:
+        factors.append("Guter Schlaf")
         impacts.append(-2)
 
     if exercise_days == 0:
-        factors.append("No exercise")
+        factors.append("Keine Bewegung")
         impacts.append(4)
     elif exercise_days >= 3:
-        factors.append("Regular exercise")
+        factors.append("Regelmäßige Bewegung")
         impacts.append(-3)
 
     if heart_rate > 80:
-        factors.append("High heart rate")
+        factors.append("Hoher Ruhepuls")
         impacts.append(3)
     elif heart_rate < 60:
-        factors.append("Low resting heart rate")
+        factors.append("Niedriger Ruhepuls")
         impacts.append(-1)
 
     if stress_score >= 18:
-        factors.append("High stress")
+        factors.append("Hoher Stress")
         impacts.append(4)
     elif stress_score <= 8:
-        factors.append("Low stress")
+        factors.append("Niedriger Stress")
         impacts.append(-1)
 
     if sitting_hours > 9:
-        factors.append("High sitting time")
+        factors.append("Hohe Sitzzeit")
         impacts.append(3)
 
     if daily_steps < 4000:
-        factors.append("Low daily steps")
+        factors.append("Wenige tägliche Schritte")
         impacts.append(3)
     elif daily_steps >= 10000:
-        factors.append("High daily steps")
+        factors.append("Viele tägliche Schritte")
         impacts.append(-2)
 
-    table = pd.DataFrame({
-        "Factor": factors,
-        "Impact": impacts
-    })
-
-    return table
+    return pd.DataFrame({"Faktor": factors, "Einfluss": impacts})
 
 
 def get_top_priorities(impact_table):
-    negative_impacts = impact_table[impact_table["Impact"] > 0]
-    negative_impacts = negative_impacts.sort_values("Impact", ascending=False)
-    top_priorities = negative_impacts.head(3)
-    return top_priorities
+    negative_impacts = impact_table[impact_table["Einfluss"] > 0]
+    negative_impacts = negative_impacts.sort_values("Einfluss", ascending=False)
+    return negative_impacts.head(3)
 
 
-# ------------------------------------------------------------
-# SCHRITT 7: Smart Scenario
-# ------------------------------------------------------------
-
-def generate_smart_scenario(sleep_hours, exercise_days, stress_score,
-                            sitting_hours, daily_steps):
-
+def generate_smart_scenario(
+    sleep_hours,
+    exercise_days,
+    stress_score,
+    sitting_hours,
+    daily_steps,
+):
     new_sleep = sleep_hours
     new_exercise = exercise_days
     new_stress = stress_score
@@ -281,141 +527,176 @@ def generate_smart_scenario(sleep_hours, exercise_days, stress_score,
 
     if sleep_hours < 7:
         new_sleep = 7.5
-
     if exercise_days < 3:
         new_exercise = 3
-
     if stress_score > 12:
         new_stress = 10
-
     if sitting_hours > 8:
         new_sitting = 7
-
     if daily_steps < 7000:
         new_steps = 8000
 
     return new_sleep, new_exercise, new_stress, new_sitting, new_steps
 
 
-# ------------------------------------------------------------
-# SCHRITT 8: Personal Roadmap
-# ------------------------------------------------------------
-
 def generate_roadmap(top_priorities):
     roadmap = []
 
     if len(top_priorities) == 0:
-        roadmap.append("Week 1: Maintain your current healthy habits.")
-        roadmap.append("Week 2: Continue tracking your values.")
-        roadmap.append("Week 3: Try to improve one small habit.")
-        roadmap.append("Week 4: Re-enter your values and compare your result.")
-    else:
-        counter = 1
+        roadmap.append("Woche 1: Behalte deine aktuellen gesunden Gewohnheiten bei.")
+        roadmap.append("Woche 2: Beobachte deine Werte weiterhin bewusst.")
+        roadmap.append("Woche 3: Verbessere gezielt eine kleine Gewohnheit.")
+        roadmap.append("Woche 4: Gib deine Werte erneut ein und vergleiche das Ergebnis.")
+        return roadmap
 
-        for index, row in top_priorities.iterrows():
-            factor = row["Factor"]
+    counter = 1
 
-            if factor == "Smoking":
-                roadmap.append("Week " + str(counter) + ": Focus on reducing smoking triggers.")
-            elif factor == "Obese BMI" or factor == "Overweight BMI":
-                roadmap.append("Week " + str(counter) + ": Focus on weight-related habits and daily movement.")
-            elif factor == "Low sleep":
-                roadmap.append("Week " + str(counter) + ": Focus on improving sleep duration.")
-            elif factor == "No exercise":
-                roadmap.append("Week " + str(counter) + ": Add one or two short exercise sessions.")
-            elif factor == "High stress":
-                roadmap.append("Week " + str(counter) + ": Reduce stress through breaks, planning and sleep.")
-            elif factor == "High sitting time":
-                roadmap.append("Week " + str(counter) + ": Reduce sitting time with walking breaks.")
-            elif factor == "Low daily steps":
-                roadmap.append("Week " + str(counter) + ": Increase daily steps by 1,000.")
-            elif factor == "High heart rate":
-                roadmap.append("Week " + str(counter) + ": Add moderate cardio activity.")
-            else:
-                roadmap.append("Week " + str(counter) + ": Improve " + factor + ".")
+    for _, row in top_priorities.iterrows():
+        factor = row["Faktor"]
 
-            counter = counter + 1
+        if factor == "Rauchen":
+            roadmap.append(f"Woche {counter}: Konzentriere dich darauf, Rauchauslöser zu reduzieren.")
+        elif factor == "BMI im Adipositas-Bereich" or factor == "BMI im Übergewichtsbereich":
+            roadmap.append(
+                f"Woche {counter}: Arbeite an gewichtsspezifischen Gewohnheiten und mehr Alltagsbewegung."
+            )
+        elif factor == "Zu wenig Schlaf":
+            roadmap.append(f"Woche {counter}: Verbessere gezielt deine Schlafdauer.")
+        elif factor == "Keine Bewegung":
+            roadmap.append(
+                f"Woche {counter}: Ergänze ein oder zwei kurze Bewegungseinheiten."
+            )
+        elif factor == "Hoher Stress":
+            roadmap.append(
+                f"Woche {counter}: Reduziere Stress durch Pausen, Planung und besseren Schlaf."
+            )
+        elif factor == "Hohe Sitzzeit":
+            roadmap.append(
+                f"Woche {counter}: Unterbrich langes Sitzen mit kurzen Gehpausen."
+            )
+        elif factor == "Wenige tägliche Schritte":
+            roadmap.append(f"Woche {counter}: Erhöhe deine täglichen Schritte um 1.000.")
+        elif factor == "Hoher Ruhepuls":
+            roadmap.append(f"Woche {counter}: Ergänze moderates Ausdauertraining.")
+        else:
+            roadmap.append(f"Woche {counter}: Verbessere gezielt den Bereich {factor}.")
 
-        roadmap.append("Week 4: Re-enter your values and compare your progress.")
+        counter += 1
 
+    roadmap.append("Woche 4: Gib deine Werte erneut ein und vergleiche deinen Fortschritt.")
     return roadmap
 
 
-# ------------------------------------------------------------
-# SCHRITT 9: Empfehlungen
-# ------------------------------------------------------------
-
-def generate_recommendations(sleep_hours, exercise_days, bmi, heart_rate,
-                             stress_score, smoking, sitting_hours, daily_steps):
-
+def generate_recommendations(
+    sleep_hours,
+    exercise_days,
+    bmi,
+    heart_rate,
+    stress_score,
+    smoking,
+    sitting_hours,
+    daily_steps,
+):
     recommendations = []
 
     if smoking == "Yes":
-        recommendations.append("Smoking: strongest negative factor. Learn more: https://www.cdc.gov/tobacco/campaign/tips/quit-smoking/")
+        recommendations.append(
+            "Rauchen: stärkster negativer Faktor. Mehr dazu: "
+            "https://www.cdc.gov/tobacco/campaign/tips/quit-smoking/"
+        )
 
     if bmi >= 30:
-        recommendations.append("BMI: obese range. Learn more: https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight")
+        recommendations.append(
+            "BMI: Bereich Adipositas. Mehr dazu: "
+            "https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight"
+        )
     elif bmi >= 25:
-        recommendations.append("BMI: overweight range. Learn more: https://www.cdc.gov/healthy-weight-growth/index.html")
+        recommendations.append(
+            "BMI: Bereich Übergewicht. Mehr dazu: "
+            "https://www.cdc.gov/healthy-weight-growth/index.html"
+        )
     elif bmi < 18.5:
-        recommendations.append("BMI: underweight range. Learn more: https://www.cdc.gov/bmi/adult-calculator/bmi-categories.html")
+        recommendations.append(
+            "BMI: Bereich Untergewicht. Mehr dazu: "
+            "https://www.cdc.gov/bmi/adult-calculator/bmi-categories.html"
+        )
 
     if sleep_hours < 7:
-        recommendations.append("Sleep: try to move closer to 7-9 hours per night. Learn more: https://www.cdc.gov/sleep/")
+        recommendations.append(
+            "Schlaf: versuche, näher an 7 bis 9 Stunden pro Nacht zu kommen. Mehr dazu: "
+            "https://www.cdc.gov/sleep/"
+        )
 
     if exercise_days < 3:
-        recommendations.append("Exercise: try to reach at least 3 exercise days per week. Learn more: https://www.who.int/news-room/fact-sheets/detail/physical-activity")
+        recommendations.append(
+            "Bewegung: versuche mindestens 3 aktive Tage pro Woche zu erreichen. Mehr dazu: "
+            "https://www.who.int/news-room/fact-sheets/detail/physical-activity"
+        )
 
     if heart_rate > 80:
-        recommendations.append("Resting heart rate: regular cardio could help. Learn more: https://www.cdc.gov/physical-activity-basics/benefits/index.html")
+        recommendations.append(
+            "Ruhepuls: regelmäßiges Ausdauertraining könnte helfen. Mehr dazu: "
+            "https://www.cdc.gov/physical-activity-basics/benefits/index.html"
+        )
 
     if stress_score >= 12:
-        recommendations.append("Stress: perceived stress is elevated. Learn more: https://www.who.int/news-room/questions-and-answers/item/stress")
+        recommendations.append(
+            "Stress: dein wahrgenommenes Stressniveau ist erhöht. Mehr dazu: "
+            "https://www.who.int/news-room/questions-and-answers/item/stress"
+        )
 
     if sitting_hours > 9:
-        recommendations.append("Sitting time: add walking breaks. Learn more: https://www.who.int/news-room/fact-sheets/detail/physical-activity")
+        recommendations.append(
+            "Sitzzeit: baue regelmäßige Gehpausen ein. Mehr dazu: "
+            "https://www.who.int/news-room/fact-sheets/detail/physical-activity"
+        )
 
     if daily_steps < 7000:
-        recommendations.append("Daily steps: increase walking gradually. Learn more: https://www.cdc.gov/physical-activity-basics/adding-adults/index.html")
+        recommendations.append(
+            "Tägliche Schritte: erhöhe deine Bewegung schrittweise. Mehr dazu: "
+            "https://www.cdc.gov/physical-activity-basics/adding-adults/index.html"
+        )
 
     if len(recommendations) == 0:
-        recommendations.append("No major negative factor detected. General information: https://www.who.int/health-topics")
+        recommendations.append(
+            "Keine großen negativen Faktoren erkannt. Allgemeine Informationen: "
+            "https://www.who.int/health-topics"
+        )
 
     return recommendations
 
 
-# ------------------------------------------------------------
-# SCHRITT 10: App Start
-# ------------------------------------------------------------
-
 create_database()
 
-st.title("Biological Age Estimator")
-st.subheader("Interactive health prototype with rule-based classification")
+apply_app_styles()
+render_hero()
 
-st.warning(
-    "This is not a medical diagnostic tool. "
-    "The biological age and risk profile are based on simple rule-based logic."
+st.markdown(
+    """
+    <div class="notice-box">
+        Dies ist kein medizinisches Diagnoseinstrument. Das biologische Alter und das Risikoprofil basieren auf
+        einfacher regelbasierter Logik und dienen nur zur Veranschaulichung, Reflexion und zum Testen des Prototyps.
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
-st.divider()
-
-
-# ------------------------------------------------------------
-# SCHRITT 11: Personal Profile
-# ------------------------------------------------------------
-
-st.header("1. Personal Profile")
+open_section(
+    "1",
+    "Profil",
+    "Persönliches Profil",
+    "Starte mit den grundlegenden Körperdaten. Diese Werte nutzt die App, um den BMI zu berechnen und deine Basis zu bestimmen.",
+)
 
 col1, col2 = st.columns(2)
 
 with col1:
-    gender = st.selectbox("Gender", ["Male", "Female"])
-    age = st.slider("Age", 10, 100, 25)
+    gender = st.selectbox("Geschlecht", ["Männlich", "Weiblich"])
+    age = st.slider("Alter", 10, 100, 25)
 
 with col2:
-    height_cm = st.slider("Height in cm", 100, 220, 175)
-    weight_kg = st.slider("Weight in kg", 30, 160, 70)
+    height_cm = st.slider("Größe in cm", 100, 220, 175)
+    weight_kg = st.slider("Gewicht in kg", 30, 160, 70)
 
 bmi = calculate_bmi(weight_kg, height_cm)
 bmi_category = get_bmi_category(bmi)
@@ -423,88 +704,79 @@ bmi_category = get_bmi_category(bmi)
 col3, col4 = st.columns(2)
 
 with col3:
-    st.metric("Calculated BMI", round(bmi, 2))
+    st.metric("Berechneter BMI", round(bmi, 2))
 
 with col4:
-    st.metric("BMI category", bmi_category)
+    st.metric("BMI-Kategorie", bmi_category)
 
-st.divider()
+close_section()
 
-
-# ------------------------------------------------------------
-# SCHRITT 12: Lifestyle Inputs
-# ------------------------------------------------------------
-
-st.header("2. Lifestyle Inputs")
+open_section(
+    "2",
+    "Lebensstil",
+    "Lebensstil-Eingaben",
+    "Erfasse Gewohnheiten, die Regeneration, Bewegung und deine tägliche körperliche Belastung beeinflussen.",
+)
 
 col5, col6 = st.columns(2)
 
 with col5:
     sleep_hours = st.number_input(
-        "Sleep per night in hours",
+        "Schlaf pro Nacht in Stunden",
         min_value=0.0,
         max_value=24.0,
         value=7.50,
         step=0.25,
-        format="%.2f"
+        format="%.2f",
     )
-
-    exercise_days = st.slider("Exercise days per week", 0, 7, 3)
-
-    heart_rate = st.slider("Resting heart rate", 40, 120, 70)
+    exercise_days = st.slider("Bewegungstage pro Woche", 0, 7, 3)
+    heart_rate = st.slider("Ruhepuls", 40, 120, 70)
 
 with col6:
     sitting_hours = st.number_input(
-        "Sitting time per day in hours",
+        "Sitzzeit pro Tag in Stunden",
         min_value=0.0,
         max_value=24.0,
         value=7.50,
         step=0.25,
-        format="%.2f"
+        format="%.2f",
     )
-
     daily_steps = st.number_input(
-        "Average daily steps",
+        "Durchschnittliche Schritte pro Tag",
         min_value=0,
         max_value=25000,
         value=7000,
-        step=500
+        step=500,
     )
+    smoking = st.selectbox("Rauchst du?", ["Nein", "Ja"])
 
-    smoking = st.selectbox("Do you smoke?", ["No", "Yes"])
+close_section()
 
-st.divider()
-
-
-# ------------------------------------------------------------
-# SCHRITT 13: Stress Check
-# ------------------------------------------------------------
-
-st.header("3. Stress Check")
-st.write("Answer from 0 = never to 4 = very often.")
+open_section(
+    "3",
+    "Stress",
+    "Stress-Check",
+    "Beantworte den kurzen Fragebogen auf einer Skala von 0 bis 4. Der Gesamtwert fließt in die Schätzung des biologischen Alters ein.",
+)
+st.write("Antwortskala: 0 = nie bis 4 = sehr oft.")
 
 col7, col8 = st.columns(2)
 
 with col7:
-    stress_1 = st.slider("Unable to control important things?", 0, 4, 2)
-    stress_2 = st.slider("Nervous or stressed?", 0, 4, 2)
-    stress_3 = st.slider("Difficulties piling up?", 0, 4, 2)
+    stress_1 = st.slider("Konntest du wichtige Dinge nicht kontrollieren?", 0, 4, 2)
+    stress_2 = st.slider("Warst du nervös oder gestresst?", 0, 4, 2)
+    stress_3 = st.slider("Hatten sich Schwierigkeiten angehäuft?", 0, 4, 2)
 
 with col8:
-    stress_4 = st.slider("Confident handling problems?", 0, 4, 2)
-    stress_5 = st.slider("Things going your way?", 0, 4, 2)
-    stress_6 = st.slider("Unable to cope with tasks?", 0, 4, 2)
+    stress_4 = st.slider("Konntest du Probleme selbstbewusst angehen?", 0, 4, 2)
+    stress_5 = st.slider("Liefen Dinge so, wie du es wolltest?", 0, 4, 2)
+    stress_6 = st.slider("Konntest du Aufgaben kaum bewältigen?", 0, 4, 2)
 
 stress_score = stress_1 + stress_2 + stress_3 + (4 - stress_4) + (4 - stress_5) + stress_6
 
-st.metric("Stress score", str(stress_score) + " / 24")
+st.metric("Stresswert", f"{stress_score} / 24")
 
-st.divider()
-
-
-# ------------------------------------------------------------
-# SCHRITT 14: Health Dashboard
-# ------------------------------------------------------------
+close_section()
 
 biological_age = calculate_biological_age(
     age,
@@ -515,7 +787,7 @@ biological_age = calculate_biological_age(
     stress_score,
     smoking,
     sitting_hours,
-    daily_steps
+    daily_steps,
 )
 
 age_gap = biological_age - age
@@ -523,40 +795,45 @@ health_score = calculate_health_score(age_gap)
 profile_category = get_profile_category(age_gap)
 risk_profile = predict_risk_profile(age_gap)
 
-st.header("4. Health Dashboard")
+open_section(
+    "4",
+    "Dashboard",
+    "Gesundheits-Dashboard",
+    "Sieh dein aktuelles Alter, das geschätzte biologische Alter, den Health Score und das Risikoprofil auf einen Blick.",
+)
 
 col9, col10, col11, col12 = st.columns(4)
 
 with col9:
-    st.metric("Real age", age)
+    st.metric("Reales Alter", age)
 
 with col10:
-    st.metric("Biological age", round(biological_age, 1))
+    st.metric("Biologisches Alter", round(biological_age, 1))
 
 with col11:
-    st.metric("Health score", round(health_score, 1))
+    st.metric("Health Score", round(health_score, 1))
 
 with col12:
-    st.metric("Risk profile", risk_profile)
+    st.metric("Risikoprofil", risk_profile)
 
-st.write("Rule-based category:", profile_category)
-st.write("Age gap:", round(age_gap, 1), "years")
+st.write("Regelbasierte Kategorie:", profile_category)
+st.write("Altersdifferenz:", round(age_gap, 1), "Jahre")
 
 if age_gap <= -3:
-    st.success("Your biological age is clearly below your real age.")
+    st.success("Dein biologisches Alter liegt deutlich unter deinem realen Alter.")
 elif age_gap <= 2:
-    st.info("Your biological age is close to your real age.")
+    st.info("Dein biologisches Alter liegt nahe an deinem realen Alter.")
 else:
-    st.warning("Your biological age is above your real age. Improvement recommended.")
+    st.warning("Dein biologisches Alter liegt über deinem realen Alter. Verbesserung empfohlen.")
 
-st.divider()
+close_section()
 
-
-# ------------------------------------------------------------
-# SCHRITT 15: Top 3 Priorities
-# ------------------------------------------------------------
-
-st.header("5. Top 3 Priorities")
+open_section(
+    "5",
+    "Fokus",
+    "Top-3-Prioritäten",
+    "Diese Faktoren wirken sich aktuell am stärksten negativ aus und sind die sinnvollsten Hebel für Verbesserungen.",
+)
 
 impact_table = get_factor_impacts(
     sleep_hours,
@@ -566,54 +843,62 @@ impact_table = get_factor_impacts(
     stress_score,
     smoking,
     sitting_hours,
-    daily_steps
+    daily_steps,
 )
 
 top_priorities = get_top_priorities(impact_table)
 
 if len(top_priorities) > 0:
-    st.write("These factors increase your biological age the most:")
+    st.write("Diese Faktoren erhöhen dein biologisches Alter aktuell am stärksten:")
     st.write(top_priorities)
 else:
-    st.write("No negative priority detected.")
+    st.write("Keine negativen Prioritäten erkannt.")
 
-st.divider()
+close_section()
 
-
-# ------------------------------------------------------------
-# SCHRITT 16: Factor Impact Analysis
-# ------------------------------------------------------------
-
-st.header("6. Factor Impact Analysis")
+open_section(
+    "6",
+    "Analyse",
+    "Einflussanalyse der Faktoren",
+    "Hier siehst du, wie jeder Faktor die regelbasierte Altersschätzung verändert und wo die stärksten positiven oder negativen Effekte liegen.",
+)
 
 if len(impact_table) > 0:
     st.write(impact_table)
-    st.bar_chart(impact_table, x="Factor", y="Impact")
+    st.bar_chart(impact_table, x="Faktor", y="Einfluss")
 else:
-    st.write("No factor changed the biological age in this prototype.")
+    st.write("In diesem Prototyp verändert aktuell kein Faktor das biologische Alter.")
 
-st.divider()
+close_section()
 
-
-# ------------------------------------------------------------
-# SCHRITT 17: Smart What-if Simulator
-# ------------------------------------------------------------
-
-st.header("7. Smart What-if Simulator")
+open_section(
+    "7",
+    "Szenario",
+    "Smart-What-if-Simulator",
+    "Vergleiche deine aktuellen Werte mit einem ausgeglicheneren Lebensstil-Szenario und schätze das Verbesserungspotenzial ab.",
+)
 
 new_sleep, new_exercise, new_stress, new_sitting, new_steps = generate_smart_scenario(
     sleep_hours,
     exercise_days,
     stress_score,
     sitting_hours,
-    daily_steps
+    daily_steps,
 )
 
-scenario_table = pd.DataFrame({
-    "Metric": ["Sleep", "Exercise days", "Stress score", "Sitting time", "Daily steps"],
-    "Current": [sleep_hours, exercise_days, stress_score, sitting_hours, daily_steps],
-    "Suggested": [new_sleep, new_exercise, new_stress, new_sitting, new_steps]
-})
+scenario_table = pd.DataFrame(
+    {
+        "Kennzahl": [
+            "Schlaf",
+            "Bewegungstage",
+            "Stresswert",
+            "Sitzzeit",
+            "Tägliche Schritte",
+        ],
+        "Aktuell": [sleep_hours, exercise_days, stress_score, sitting_hours, daily_steps],
+        "Vorgeschlagen": [new_sleep, new_exercise, new_stress, new_sitting, new_steps],
+    }
+)
 
 st.write(scenario_table)
 
@@ -626,7 +911,7 @@ new_biological_age = calculate_biological_age(
     new_stress,
     smoking,
     new_sitting,
-    new_steps
+    new_steps,
 )
 
 improvement = biological_age - new_biological_age
@@ -634,36 +919,36 @@ improvement = biological_age - new_biological_age
 col13, col14, col15 = st.columns(3)
 
 with col13:
-    st.metric("Current biological age", round(biological_age, 1))
+    st.metric("Aktuelles biologisches Alter", round(biological_age, 1))
 
 with col14:
-    st.metric("Suggested biological age", round(new_biological_age, 1))
+    st.metric("Biologisches Alter im Szenario", round(new_biological_age, 1))
 
 with col15:
-    st.metric("Improvement potential", round(improvement, 1))
+    st.metric("Verbesserungspotenzial", round(improvement, 1))
 
-st.divider()
+close_section()
 
-
-# ------------------------------------------------------------
-# SCHRITT 18: Personal Roadmap
-# ------------------------------------------------------------
-
-st.header("8. Personal Health Roadmap")
+open_section(
+    "8",
+    "Roadmap",
+    "Persönliche Gesundheits-Roadmap",
+    "Übersetze die wichtigsten Belastungsfaktoren in einen kurzen und konkreten Vier-Wochen-Plan.",
+)
 
 roadmap = generate_roadmap(top_priorities)
 
 for step in roadmap:
     st.write("- " + step)
 
-st.divider()
+close_section()
 
-
-# ------------------------------------------------------------
-# SCHRITT 19: Learning Resources
-# ------------------------------------------------------------
-
-st.header("9. Learning Resources")
+open_section(
+    "9",
+    "Ressourcen",
+    "Weiterführende Informationen",
+    "Nutze diese Hinweise und Links, um die wichtigsten Einflussfaktoren hinter deinem Ergebnis besser zu verstehen.",
+)
 
 recommendations = generate_recommendations(
     sleep_hours,
@@ -673,20 +958,20 @@ recommendations = generate_recommendations(
     stress_score,
     smoking,
     sitting_hours,
-    daily_steps
+    daily_steps,
 )
 
 for recommendation in recommendations:
     st.write("- " + recommendation)
 
-st.divider()
+close_section()
 
-
-# ------------------------------------------------------------
-# SCHRITT 20: Save and Track Progress
-# ------------------------------------------------------------
-
-st.header("10. Save and Track Progress")
+open_section(
+    "10",
+    "Tracking",
+    "Speichern und Fortschritt verfolgen",
+    "Speichere Ergebnisse lokal in der Datenbank und beobachte, wie sich dein biologisches Alter über mehrere Eingaben verändert.",
+)
 
 if st.button("Save result", key="save_result_button"):
     save_entry(
@@ -703,14 +988,14 @@ if st.button("Save result", key="save_result_button"):
         sitting_hours,
         daily_steps,
         biological_age,
-        risk_profile
+        risk_profile,
     )
-    st.success("Result saved.")
+    st.success("Ergebnis gespeichert.")
 
 entries = load_entries()
 
 if len(entries) > 0:
-    st.subheader("Progress history")
+    st.subheader("Verlauf")
 
     first_age = entries["biological_age"].iloc[0]
     latest_age = entries["biological_age"].iloc[-1]
@@ -719,20 +1004,21 @@ if len(entries) > 0:
     col16, col17, col18 = st.columns(3)
 
     with col16:
-        st.metric("First saved biological age", round(first_age, 1))
+        st.metric("Erstes gespeichertes biologisches Alter", round(first_age, 1))
 
     with col17:
-        st.metric("Latest biological age", round(latest_age, 1))
+        st.metric("Letztes gespeichertes biologisches Alter", round(latest_age, 1))
 
     with col18:
-        st.metric("Progress", round(progress, 1))
+        st.metric("Veränderung", round(progress, 1))
 
     st.write(entries)
     st.line_chart(entries["biological_age"])
-
 else:
-    st.write("No saved results yet.")
+    st.write("Noch keine gespeicherten Ergebnisse vorhanden.")
 
-if st.button("Clear history", key="clear_history_button"):
+if st.button("Verlauf löschen", key="clear_history_button"):
     clear_database()
-    st.success("History deleted.")
+    st.success("Verlauf gelöscht.")
+
+close_section()
