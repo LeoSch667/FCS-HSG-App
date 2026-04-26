@@ -188,7 +188,7 @@ def render_hero():
                 <div class="hero-title">Biologischer Altersrechner</div>
                 <div class="hero-text">
                     Entdecke, wie Lebensstil, Stress, Bewegung und Regeneration dein biologisches Altersprofil beeinflussen.
-                    Zusätzlich nutzt dieser Prototyp ein einfaches KNN-Modell, um ein Risikoprofil vorherzusagen.
+                    Zusätzlich nutzt dieser Prototyp ein einfaches KNN-Modell, um ein Risikoprofil vorherzusagen. Test test test
                 </div>
             </div>
             <img
