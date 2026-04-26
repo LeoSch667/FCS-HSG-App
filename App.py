@@ -2,6 +2,7 @@ import sqlite3
 
 import pandas as pd
 import streamlit as st
+from sklearn.neighbors import KNeighborsClassifier
 
 
 st.set_page_config(
@@ -24,7 +25,6 @@ def apply_app_styles():
             --sky-strong: #bfd9ea;
             --text-soft: #5f6c7b;
             --white: #ffffff;
-            --success: #d7eadf;
         }
 
         .stApp {
@@ -158,11 +158,6 @@ def apply_app_styles():
             border: 1px solid rgba(16, 42, 67, 0.08);
             border-radius: 18px;
             padding: 0.9rem 1rem;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
-        }
-
-        [data-testid="stMetricLabel"] {
-            color: var(--text-soft);
         }
 
         .stButton > button {
@@ -178,23 +173,6 @@ def apply_app_styles():
             background: var(--navy-soft);
             color: white;
         }
-
-        div[data-baseweb="input"] > div,
-        div[data-baseweb="select"] > div,
-        div[data-baseweb="base-input"] > div,
-        .stNumberInput input {
-            background: #fcfaf6;
-            border-radius: 14px;
-            border-color: rgba(16, 42, 67, 0.16);
-        }
-
-        .stSlider [data-baseweb="slider"] > div > div {
-            background: var(--sky-strong);
-        }
-
-        .stAlert {
-            border-radius: 18px;
-        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -209,9 +187,8 @@ def render_hero():
                 <div class="hero-kicker">Persönlicher Gesundheitsprototyp</div>
                 <div class="hero-title">Biologischer Altersrechner</div>
                 <div class="hero-text">
-                    Entdecke, wie Lebensstil, Stress, Bewegung und Regeneration dein biologisches Altersprofil in diesem
-                    regelbasierten Prototyp beeinflussen. Erfasse deine Werte, vergleiche Szenarien und verfolge deine
-                    Entwicklung in einem strukturierten Dashboard.
+                    Entdecke, wie Lebensstil, Stress, Bewegung und Regeneration dein biologisches Altersprofil beeinflussen.
+                    Zusätzlich nutzt dieser Prototyp ein einfaches KNN-Modell, um ein Risikoprofil vorherzusagen.
                 </div>
             </div>
             <img
@@ -247,7 +224,7 @@ def close_section():
 
 
 def create_database():
-    connection = sqlite3.connect("biological_age_rule_based.db")
+    connection = sqlite3.connect("biological_age_knn.db")
     cursor = connection.cursor()
 
     cursor.execute(
@@ -267,7 +244,8 @@ def create_database():
             sitting_hours REAL,
             daily_steps INTEGER,
             biological_age REAL,
-            risk_profile TEXT
+            rule_based_risk TEXT,
+            knn_risk TEXT
         )
         """
     )
@@ -290,9 +268,10 @@ def save_entry(
     sitting_hours,
     daily_steps,
     biological_age,
-    risk_profile,
+    rule_based_risk,
+    knn_risk,
 ):
-    connection = sqlite3.connect("biological_age_rule_based.db")
+    connection = sqlite3.connect("biological_age_knn.db")
     cursor = connection.cursor()
 
     cursor.execute(
@@ -300,9 +279,10 @@ def save_entry(
         INSERT INTO entries (
             age, gender, height_cm, weight_kg, bmi, sleep_hours,
             exercise_days, heart_rate, stress_score, smoking,
-            sitting_hours, daily_steps, biological_age, risk_profile
+            sitting_hours, daily_steps, biological_age,
+            rule_based_risk, knn_risk
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             age,
@@ -318,7 +298,8 @@ def save_entry(
             sitting_hours,
             daily_steps,
             biological_age,
-            risk_profile,
+            rule_based_risk,
+            knn_risk,
         ),
     )
 
@@ -327,14 +308,14 @@ def save_entry(
 
 
 def load_entries():
-    connection = sqlite3.connect("biological_age_rule_based.db")
+    connection = sqlite3.connect("biological_age_knn.db")
     data = pd.read_sql_query("SELECT * FROM entries", connection)
     connection.close()
     return data
 
 
 def clear_database():
-    connection = sqlite3.connect("biological_age_rule_based.db")
+    connection = sqlite3.connect("biological_age_knn.db")
     cursor = connection.cursor()
     cursor.execute("DELETE FROM entries")
     connection.commit()
@@ -396,7 +377,7 @@ def calculate_biological_age(
     elif stress_score <= 8:
         biological_age -= 1
 
-    if smoking == "Yes":
+    if smoking == "Ja":
         biological_age += 7
 
     if sitting_hours > 9:
@@ -418,12 +399,81 @@ def predict_risk_profile(age_gap):
     return "Hohes Risiko"
 
 
+def train_knn_model():
+    training_data = [
+        [25, 7.5, 4, 22, 60, 6, 0, 5, 12000],
+        [30, 8.0, 3, 23, 62, 7, 0, 6, 10000],
+        [40, 7.0, 3, 24, 65, 8, 0, 7, 9000],
+        [35, 6.5, 2, 27, 75, 12, 0, 8, 6500],
+        [45, 6.0, 1, 28, 78, 14, 0, 9, 5500],
+        [50, 6.5, 2, 29, 80, 13, 0, 9, 6000],
+        [45, 5.0, 0, 31, 90, 20, 1, 11, 3000],
+        [55, 5.5, 0, 34, 88, 19, 1, 10, 2500],
+        [38, 5.0, 1, 32, 85, 18, 1, 12, 3500],
+    ]
+
+    training_labels = [
+        "Niedriges Risiko",
+        "Niedriges Risiko",
+        "Niedriges Risiko",
+        "Mittleres Risiko",
+        "Mittleres Risiko",
+        "Mittleres Risiko",
+        "Hohes Risiko",
+        "Hohes Risiko",
+        "Hohes Risiko",
+    ]
+
+    model = KNeighborsClassifier(n_neighbors=3)
+    model.fit(training_data, training_labels)
+
+    return model
+
+
+def predict_knn_risk_profile(
+    model,
+    age,
+    sleep_hours,
+    exercise_days,
+    bmi,
+    heart_rate,
+    stress_score,
+    smoking,
+    sitting_hours,
+    daily_steps,
+):
+    if smoking == "Ja":
+        smoking_value = 1
+    else:
+        smoking_value = 0
+
+    user_data = [
+        [
+            age,
+            sleep_hours,
+            exercise_days,
+            bmi,
+            heart_rate,
+            stress_score,
+            smoking_value,
+            sitting_hours,
+            daily_steps,
+        ]
+    ]
+
+    prediction = model.predict(user_data)
+    return prediction[0]
+
+
 def calculate_health_score(age_gap):
     score = 100 - age_gap * 5
+
     if score > 100:
         score = 100
+
     if score < 0:
         score = 0
+
     return score
 
 
@@ -450,7 +500,7 @@ def get_factor_impacts(
     factors = []
     impacts = []
 
-    if smoking == "Yes":
+    if smoking == "Ja":
         factors.append("Rauchen")
         impacts.append(7)
 
@@ -557,23 +607,15 @@ def generate_roadmap(top_priorities):
         if factor == "Rauchen":
             roadmap.append(f"Woche {counter}: Konzentriere dich darauf, Rauchauslöser zu reduzieren.")
         elif factor == "BMI im Adipositas-Bereich" or factor == "BMI im Übergewichtsbereich":
-            roadmap.append(
-                f"Woche {counter}: Arbeite an gewichtsspezifischen Gewohnheiten und mehr Alltagsbewegung."
-            )
+            roadmap.append(f"Woche {counter}: Arbeite an gewichtsspezifischen Gewohnheiten und mehr Alltagsbewegung.")
         elif factor == "Zu wenig Schlaf":
             roadmap.append(f"Woche {counter}: Verbessere gezielt deine Schlafdauer.")
         elif factor == "Keine Bewegung":
-            roadmap.append(
-                f"Woche {counter}: Ergänze ein oder zwei kurze Bewegungseinheiten."
-            )
+            roadmap.append(f"Woche {counter}: Ergänze ein oder zwei kurze Bewegungseinheiten.")
         elif factor == "Hoher Stress":
-            roadmap.append(
-                f"Woche {counter}: Reduziere Stress durch Pausen, Planung und besseren Schlaf."
-            )
+            roadmap.append(f"Woche {counter}: Reduziere Stress durch Pausen, Planung und besseren Schlaf.")
         elif factor == "Hohe Sitzzeit":
-            roadmap.append(
-                f"Woche {counter}: Unterbrich langes Sitzen mit kurzen Gehpausen."
-            )
+            roadmap.append(f"Woche {counter}: Unterbrich langes Sitzen mit kurzen Gehpausen.")
         elif factor == "Wenige tägliche Schritte":
             roadmap.append(f"Woche {counter}: Erhöhe deine täglichen Schritte um 1.000.")
         elif factor == "Hoher Ruhepuls":
@@ -599,7 +641,7 @@ def generate_recommendations(
 ):
     recommendations = []
 
-    if smoking == "Yes":
+    if smoking == "Ja":
         recommendations.append(
             "Rauchen: stärkster negativer Faktor. Mehr dazu: "
             "https://www.cdc.gov/tobacco/campaign/tips/quit-smoking/"
@@ -667,6 +709,7 @@ def generate_recommendations(
 
 
 create_database()
+knn_model = train_knn_model()
 
 apply_app_styles()
 render_hero()
@@ -674,8 +717,9 @@ render_hero()
 st.markdown(
     """
     <div class="notice-box">
-        Dies ist kein medizinisches Diagnoseinstrument. Das biologische Alter und das Risikoprofil basieren auf
-        einfacher regelbasierter Logik und dienen nur zur Veranschaulichung, Reflexion und zum Testen des Prototyps.
+        Dies ist kein medizinisches Diagnoseinstrument. Das biologische Alter basiert auf einfacher regelbasierter Logik.
+        Das KNN-Risikoprofil ist ein Machine-Learning-Prototyp mit synthetischen Trainingsbeispielen und dient nur zur
+        Veranschaulichung der im Kurs behandelten k-nearest-neighbor-Methode.
     </div>
     """,
     unsafe_allow_html=True,
@@ -758,6 +802,7 @@ open_section(
     "Stress-Check",
     "Beantworte den kurzen Fragebogen auf einer Skala von 0 bis 4. Der Gesamtwert fließt in die Schätzung des biologischen Alters ein.",
 )
+
 st.write("Antwortskala: 0 = nie bis 4 = sehr oft.")
 
 col7, col8 = st.columns(2)
@@ -793,16 +838,30 @@ biological_age = calculate_biological_age(
 age_gap = biological_age - age
 health_score = calculate_health_score(age_gap)
 profile_category = get_profile_category(age_gap)
-risk_profile = predict_risk_profile(age_gap)
+
+rule_based_risk = predict_risk_profile(age_gap)
+
+knn_risk = predict_knn_risk_profile(
+    knn_model,
+    age,
+    sleep_hours,
+    exercise_days,
+    bmi,
+    heart_rate,
+    stress_score,
+    smoking,
+    sitting_hours,
+    daily_steps,
+)
 
 open_section(
     "4",
     "Dashboard",
     "Gesundheits-Dashboard",
-    "Sieh dein aktuelles Alter, das geschätzte biologische Alter, den Health Score und das Risikoprofil auf einen Blick.",
+    "Sieh dein aktuelles Alter, das geschätzte biologische Alter, den Health Score, das regelbasierte Risiko und das KNN-Risikoprofil auf einen Blick.",
 )
 
-col9, col10, col11, col12 = st.columns(4)
+col9, col10, col11, col12, col13 = st.columns(5)
 
 with col9:
     st.metric("Reales Alter", age)
@@ -814,7 +873,10 @@ with col11:
     st.metric("Health Score", round(health_score, 1))
 
 with col12:
-    st.metric("Risikoprofil", risk_profile)
+    st.metric("Regelbasiertes Risiko", rule_based_risk)
+
+with col13:
+    st.metric("KNN-Risiko", knn_risk)
 
 st.write("Regelbasierte Kategorie:", profile_category)
 st.write("Altersdifferenz:", round(age_gap, 1), "Jahre")
@@ -830,6 +892,45 @@ close_section()
 
 open_section(
     "5",
+    "Machine Learning",
+    "KNN-Modell-Erklärung",
+    "Das KNN-Modell vergleicht dein Profil mit einfachen Trainingsbeispielen und ordnet dich der ähnlichsten Risikogruppe zu.",
+)
+
+st.write("Verwendete Eingabewerte für KNN:")
+knn_input_table = pd.DataFrame(
+    {
+        "Variable": [
+            "Alter",
+            "Schlaf",
+            "Bewegungstage",
+            "BMI",
+            "Ruhepuls",
+            "Stresswert",
+            "Rauchen",
+            "Sitzzeit",
+            "Tägliche Schritte",
+        ],
+        "Wert": [
+            age,
+            sleep_hours,
+            exercise_days,
+            round(bmi, 2),
+            heart_rate,
+            stress_score,
+            smoking,
+            sitting_hours,
+            daily_steps,
+        ],
+    }
+)
+
+st.write(knn_input_table)
+
+close_section()
+
+open_section(
+    "6",
     "Fokus",
     "Top-3-Prioritäten",
     "Diese Faktoren wirken sich aktuell am stärksten negativ aus und sind die sinnvollsten Hebel für Verbesserungen.",
@@ -857,10 +958,10 @@ else:
 close_section()
 
 open_section(
-    "6",
+    "7",
     "Analyse",
     "Einflussanalyse der Faktoren",
-    "Hier siehst du, wie jeder Faktor die regelbasierte Altersschätzung verändert und wo die stärksten positiven oder negativen Effekte liegen.",
+    "Hier siehst du, wie jeder Faktor die regelbasierte Altersschätzung verändert.",
 )
 
 if len(impact_table) > 0:
@@ -872,10 +973,10 @@ else:
 close_section()
 
 open_section(
-    "7",
+    "8",
     "Szenario",
     "Smart-What-if-Simulator",
-    "Vergleiche deine aktuellen Werte mit einem ausgeglicheneren Lebensstil-Szenario und schätze das Verbesserungspotenzial ab.",
+    "Vergleiche deine aktuellen Werte mit einem ausgeglicheneren Lebensstil-Szenario.",
 )
 
 new_sleep, new_exercise, new_stress, new_sitting, new_steps = generate_smart_scenario(
@@ -916,24 +1017,24 @@ new_biological_age = calculate_biological_age(
 
 improvement = biological_age - new_biological_age
 
-col13, col14, col15 = st.columns(3)
-
-with col13:
-    st.metric("Aktuelles biologisches Alter", round(biological_age, 1))
+col14, col15, col16 = st.columns(3)
 
 with col14:
-    st.metric("Biologisches Alter im Szenario", round(new_biological_age, 1))
+    st.metric("Aktuelles biologisches Alter", round(biological_age, 1))
 
 with col15:
+    st.metric("Biologisches Alter im Szenario", round(new_biological_age, 1))
+
+with col16:
     st.metric("Verbesserungspotenzial", round(improvement, 1))
 
 close_section()
 
 open_section(
-    "8",
+    "9",
     "Roadmap",
     "Persönliche Gesundheits-Roadmap",
-    "Übersetze die wichtigsten Belastungsfaktoren in einen kurzen und konkreten Vier-Wochen-Plan.",
+    "Übersetze die wichtigsten Belastungsfaktoren in einen konkreten Vier-Wochen-Plan.",
 )
 
 roadmap = generate_roadmap(top_priorities)
@@ -944,7 +1045,7 @@ for step in roadmap:
 close_section()
 
 open_section(
-    "9",
+    "10",
     "Ressourcen",
     "Weiterführende Informationen",
     "Nutze diese Hinweise und Links, um die wichtigsten Einflussfaktoren hinter deinem Ergebnis besser zu verstehen.",
@@ -967,7 +1068,7 @@ for recommendation in recommendations:
 close_section()
 
 open_section(
-    "10",
+    "11",
     "Tracking",
     "Speichern und Fortschritt verfolgen",
     "Speichere Ergebnisse lokal in der Datenbank und beobachte, wie sich dein biologisches Alter über mehrere Eingaben verändert.",
@@ -988,7 +1089,8 @@ if st.button("Save result", key="save_result_button"):
         sitting_hours,
         daily_steps,
         biological_age,
-        risk_profile,
+        rule_based_risk,
+        knn_risk,
     )
     st.success("Ergebnis gespeichert.")
 
@@ -1001,15 +1103,15 @@ if len(entries) > 0:
     latest_age = entries["biological_age"].iloc[-1]
     progress = latest_age - first_age
 
-    col16, col17, col18 = st.columns(3)
-
-    with col16:
-        st.metric("Erstes gespeichertes biologisches Alter", round(first_age, 1))
+    col17, col18, col19 = st.columns(3)
 
     with col17:
-        st.metric("Letztes gespeichertes biologisches Alter", round(latest_age, 1))
+        st.metric("Erstes gespeichertes biologisches Alter", round(first_age, 1))
 
     with col18:
+        st.metric("Letztes gespeichertes biologisches Alter", round(latest_age, 1))
+
+    with col19:
         st.metric("Veränderung", round(progress, 1))
 
     st.write(entries)
