@@ -433,7 +433,13 @@ def load_entries(user_id):
     Die Daten sind nach Datum sortiert (neueste zuerst).
     """
     connection = sqlite3.connect("biological_age.db")
-    data = pd.read_sql_query("SELECT * FROM entries WHERE user_id = ? ORDER BY created_at DESC", connection, params=(user_id,))
+    # Nutze cursor für sichere Parameterisierung
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM entries WHERE user_id = ? ORDER BY created_at DESC", (user_id,))
+    
+    # Hole Spaltennamen
+    columns = [description[0] for description in cursor.description]
+    data = pd.DataFrame(cursor.fetchall(), columns=columns)
     connection.close()
     return data
 
