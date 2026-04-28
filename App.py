@@ -643,16 +643,6 @@ create_database()
 apply_app_styles()
 render_hero()
 
-st.markdown(
-    """
-    <div class="notice-box">
-        Dies ist kein medizinisches Diagnoseinstrument. Das biologische Alter basiert auf einfacher regelbasierter Logik.
-        Die Ergebnisse dienen nur zur Veranschaulichung und ersetzen keine professionelle medizinische Beratung.
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
 open_section(
     "1",
     "Profil",
