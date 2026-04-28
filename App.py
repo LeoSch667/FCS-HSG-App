@@ -432,6 +432,8 @@ def load_entries(user_id):
     WICHTIG: Mit user_id filtern → andere Benutzer sehen diese Daten NICHT!
     Die Daten sind nach Datum sortiert (neueste zuerst).
     """
+    connection = sqlite3.connect("biological_age.db")
+    data = pd.read_sql_query("SELECT * FROM entries WHERE user_id = ? ORDER BY created_at DESC", connection, params=(user_id,))
     connection.close()
     return data
 
