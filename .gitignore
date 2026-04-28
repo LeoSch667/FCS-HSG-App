@@ -1,0 +1,23 @@
+# 🗄️ Lokale Datenbank (sollte nicht auf GitHub sein)
+biological_age.db
+
+# 🔍 Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 📦 Virtuelle Umgebungen
+venv/
+env/
+.venv/
+
+# 💾 IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 📊 Streamlit Cache
+.streamlit/
